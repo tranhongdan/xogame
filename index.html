@@ -98,7 +98,7 @@
             user-select: none;
             font-weight: bold;
             transition: background-color 0.2s;
-            position: relative; /* De hien thi highlight */
+            position: relative;
         }
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; }
@@ -109,11 +109,10 @@
             background-color: #334155 !important;
             box-shadow: inset 0 0 0 2px #22d3ee; /* Mau Cyan sang */
         }
-        
-        /* O chien thang (uu tien cao hon o vua danh) */
+
         .o_thang {
             background-color: #422006 !important;
-            box-shadow: inset 0 0 0 2px #facc15 !important; /* Mau vang */
+            box-shadow: inset 0 0 0 2px #facc15 !important;
         }
         .o_thang .quan_x, .o_thang .quan_o { color: #facc15; }
 
@@ -192,7 +191,7 @@
     </div>
 
     <div id="ban_quyen">
-        Trần Hồng Dân - tranhongdan@tranphudlk.edu.vn
+        Bản quyền: Trần Hồng Dân. Email: tranhongdan@tranphudlk.edu.vn
     </div>
 
     <div id="modal_qr">
@@ -235,9 +234,7 @@
         let luot_choi = 'X';
         let nguoi_thang = null;
         let hang_thang = [];
-        
-        // Bien moi: luu id cua nuoc di cuoi cung de highlight (dang "h,c")
-        let nuoc_di_cuoi = null; 
+        let nuoc_di_cuoi = null;
         
         const SO_QUAN_THANG = 5;
         const PADDING = 3;
@@ -297,7 +294,7 @@
                     nguoi_thang: null,
                     nguoi_tao: user_id,
                     nguoi_tham_gia: null,
-                    nuoc_di_cuoi: null, // Khoi tao field nay
+                    nuoc_di_cuoi: null,
                     ngay_tao: Date.now()
                 };
 
@@ -346,8 +343,7 @@
                     cac_nuoc_di = data.cac_nuoc_di || {};
                     luot_choi = data.luot_choi;
                     nguoi_thang = data.nguoi_thang;
-                    // Cap nhat nuoc di cuoi cung tu server
-                    nuoc_di_cuoi = data.nuoc_di_cuoi || null; 
+                    nuoc_di_cuoi = data.nuoc_di_cuoi || null;
                     
                     if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                         dong_modal();
@@ -380,7 +376,7 @@
             if (!room_id) {
                 // Che do Offline
                 cac_nuoc_di[id] = luot_choi;
-                nuoc_di_cuoi = id; // Luu local
+                nuoc_di_cuoi = id;
                 
                 kiem_tra_ket_thuc(h, c, luot_choi);
                 if (!nguoi_thang) luot_choi = (luot_choi === 'X' ? 'O' : 'X');
@@ -400,12 +396,11 @@
 
             const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
             try {
-                // Update bao gom ca nuoc_di_cuoi
                 await updateDoc(gameRef, {
                     [`cac_nuoc_di.${id}`]: my_role, 
                     luot_choi: next_turn,
                     nguoi_thang: winner,
-                    nuoc_di_cuoi: id 
+                    nuoc_di_cuoi: id
                 });
             } catch (e) {
                  await updateDoc(gameRef, {
@@ -418,20 +413,34 @@
         }
 
         window.xu_ly_choi_lai = async function() {
+            // --- LOGIC MOI: XAC DINH NGUOI THUA SE DI TRUOC ---
+            let nguoi_di_dau = 'X'; // Mac dinh
+            
+            // Neu X thang -> O la nguoi thua -> O di truoc
+            if (nguoi_thang === 'X') {
+                nguoi_di_dau = 'O';
+            } 
+            // Neu O thang -> X la nguoi thua -> X di truoc
+            else if (nguoi_thang === 'O') {
+                nguoi_di_dau = 'X';
+            }
+
             if (room_id) {
+                // Reset tren server voi nguoi_di_dau moi
                 const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
                 await updateDoc(gameRef, {
                     cac_nuoc_di: {},
-                    luot_choi: 'X',
+                    luot_choi: nguoi_di_dau, // Set nguoi thua di truoc
                     nguoi_thang: null,
-                    nuoc_di_cuoi: null // Reset highlight
+                    nuoc_di_cuoi: null
                 });
             } else {
+                // Reset local
                 cac_nuoc_di = {};
-                luot_choi = 'X';
+                luot_choi = nguoi_di_dau; // Set nguoi thua di truoc
                 nguoi_thang = null;
                 hang_thang = [];
-                nuoc_di_cuoi = null; // Reset highlight
+                nuoc_di_cuoi = null;
                 cap_nhat_ui_thong_tin();
                 ve_ban_co();
             }
@@ -535,7 +544,6 @@
                         o.classList.add(q === 'X' ? 'quan_x' : 'quan_o');
                     }
                     
-                    // Them class highlight neu la o vua danh
                     if (id === nuoc_di_cuoi) {
                         o.classList.add('o_vua_danh');
                     }
@@ -578,6 +586,3 @@
     </script>
 </body>
 </html>
-
-```
-
