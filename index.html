@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Co Caro Vo Tan - Sync Final</title>
+    <title>Co Caro Vo Tan - PC Full Screen</title>
     <style>
         /* --- CSS CO BAN --- */
         body { margin: 0; padding: 0; background-color: #0f172a; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -27,24 +27,43 @@
         .btn-success { background-color: #16a34a; } .btn-success:hover { background-color: #15803d; }
         .btn-danger { background-color: #dc2626; } .btn-danger:hover { background-color: #b91c1c; }
 
-        /* --- BAN CO --- */
-        #khung_ban_co { flex: 1; display: flex; justify-content: center; align-items: center; padding: 10px; position: relative; }
-        #luoi_co { display: grid; background-color: #334155; gap: 1px; border: 1px solid #334155; }
-        .o_co { background-color: #1e293b; display: flex; justify-content: center; align-items: center; cursor: pointer; user-select: none; font-weight: bold; position: relative; }
+        /* --- BAN CO (FIXED SCROLL) --- */
+        #khung_ban_co { 
+            flex: 1; 
+            overflow: auto; /* Cho phep cuon neu ban co qua lon */
+            display: flex; 
+            justify-content: center; /* Can giua neu ban co nho hon man hinh */
+            align-items: center; 
+            padding: 20px;
+            background-color: #0f172a;
+            position: relative; 
+        }
+
+        #luoi_co { 
+            display: grid; 
+            background-color: #334155; 
+            gap: 1px; 
+            border: 1px solid #334155; 
+            margin: auto; /* Can giua trong scroll view */
+        }
+
+        .o_co { 
+            background-color: #1e293b; 
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; user-select: none; font-weight: bold; position: relative; 
+            /* Kich thuoc co dinh tu JS */
+        }
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
-        /* Highlight nuoc moi */
         .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
 
-        /* Highlight O THANG (Dong bo tuyet doi) */
         .o_co.o_thang {
             background-color: #facc15 !important; 
             box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important;
             animation: thang_cuoc 0.5s infinite alternate;
             z-index: 100;
         }
-        /* Mau chu trong o thang chuyen sang Nau Dam */
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { color: #451a03 !important; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.1); } }
 
@@ -116,8 +135,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'final-v3-sync';
-
+        
         let user_id = null;
         let room_id = null;
         let is_host = false;
@@ -127,12 +145,13 @@
         let lich_su_nuoc_di = []; 
         let luot_choi = 'X';
         let nguoi_thang = null;
-        let hang_thang = []; // Danh sach ID cac o thang
+        let hang_thang = []; 
         let nuoc_di_cuoi = null;
         let so_lan_undo = { X: 3, O: 3 };
         
         const SO_QUAN_THANG = 5;
-        const PADDING = 3;
+        // PADDING nho hon vi ta dung Minimum Viewport
+        const PADDING = 2; 
 
         async function init() {
             try {
@@ -164,7 +183,7 @@
 
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
-                nguoi_thang: null, hang_thang: [], // Luu mang o thang tren server
+                nguoi_thang: null, hang_thang: [], 
                 nguoi_tao: user_id, nguoi_tham_gia: null,
                 nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, ngay_tao: Date.now()
             });
@@ -185,28 +204,24 @@
         window.dong_modal = (id) => document.getElementById(id).style.display = 'none';
         window.copy_link = () => { navigator.clipboard.writeText(document.getElementById('link_phong').textContent); alert("Đã copy!"); }
 
-        // --- SYNC CORE ---
         function lang_nghe_phong(id) {
             onSnapshot(doc(db, 'games', id), (docSnap) => {
                 if (!docSnap.exists()) return;
                 const data = docSnap.data();
                 
-                // Dong bo du lieu
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
                 nguoi_thang = data.nguoi_thang;
                 nuoc_di_cuoi = data.nuoc_di_cuoi;
-                hang_thang = data.hang_thang || []; // Lay truc tiep tu server
+                hang_thang = data.hang_thang || [];
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 
-                // Logic ket noi
                 if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                     dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                 }
                 if (!is_host && !data.nguoi_tham_gia && user_id) updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id });
 
-                // Logic Undo
                 if (data.undo_request) {
                     if (data.undo_request.status === 'pending' && data.undo_request.requester !== my_role) 
                         document.getElementById('modal_confirm_undo').style.display = 'flex';
@@ -226,7 +241,7 @@
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
-            if (!room_id) { // Offline
+            if (!room_id) { 
                 cac_nuoc_di[id] = luot_choi;
                 lich_su_nuoc_di.push({id, player: luot_choi});
                 nuoc_di_cuoi = id;
@@ -238,29 +253,23 @@
 
             if (luot_choi !== my_role) return;
 
-            // Optimistic UI (Hien thi ngay)
             cac_nuoc_di[id] = my_role; 
             nuoc_di_cuoi = id;
             const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
-            if (thang_cuc_bo) {
-                nguoi_thang = my_role;
-                hang_thang = thang_cuc_bo;
-            }
-            ve_ban_co(); // Ve ngay de nguoi choi thay
+            if (thang_cuc_bo) { nguoi_thang = my_role; hang_thang = thang_cuc_bo; }
+            ve_ban_co(); 
 
-            // Gui len Server (Gui kem hang_thang de nguoi kia khong phai tinh)
             await updateDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: cac_nuoc_di,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
                 luot_choi: thang_cuc_bo ? my_role : (my_role === 'X' ? 'O' : 'X'),
                 nguoi_thang: thang_cuc_bo ? my_role : null,
-                hang_thang: thang_cuc_bo || [], // QUAN TRONG: Gui mang thang len
+                hang_thang: thang_cuc_bo || [],
                 nuoc_di_cuoi: id,
                 undo_request: null
             });
         }
 
-        // --- UNDO ---
         window.gui_yeu_cau_undo = async () => {
             if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return;
             if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; }
@@ -287,8 +296,8 @@
                     lich_su_nuoc_di: hist,
                     nuoc_di_cuoi: prev,
                     luot_choi: last.player,
-                    nguoi_thang: null, // Xoa thang
-                    hang_thang: [], // Xoa duong highlight
+                    nguoi_thang: null,
+                    hang_thang: [],
                     so_lan_undo: data.so_lan_undo,
                     undo_request: { requester: last.player, status: 'accepted' }
                 });
@@ -310,7 +319,6 @@
             }
         }
 
-        // --- GAME LOGIC ---
         function tinh_toan_thang(h, c, player, board) {
              const dirs = [[0,1], [1,0], [1,1], [1,-1]];
              for (let [dh, dc] of dirs) {
@@ -328,13 +336,11 @@
              return null;
         }
 
-        // --- RENDER ---
-        function ve_ban_co() {
-            const luoi = document.getElementById('luoi_co');
+        // --- NEW RENDER LOGIC: FULL SCREEN + SCROLL ---
+        function lay_gioi_han() {
             const keys = Object.keys(cac_nuoc_di);
-            
-            // Auto-scale
-            let min_h=-3, max_h=3, min_c=-3, max_c=3;
+            let min_h = 0, max_h = 0, min_c = 0, max_c = 0;
+
             if (keys.length > 0) {
                 min_h = Infinity; max_h = -Infinity; min_c = Infinity; max_c = -Infinity;
                 keys.forEach(k => {
@@ -342,14 +348,45 @@
                     if(h<min_h) min_h=h; if(h>max_h) max_h=h;
                     if(c<min_c) min_c=c; if(c>max_c) max_c=c;
                 });
-                min_h-=3; max_h+=3; min_c-=3; max_c+=3;
             }
 
-            const rows = max_h - min_h + 1;
-            const cols = max_c - min_c + 1;
+            // Tinh tam cua ban co
+            const center_h = Math.floor((min_h + max_h) / 2);
+            const center_c = Math.floor((min_c + max_c) / 2);
+
+            // CAU HINH: Luon hien thi it nhat 30 cot, 16 hang de full man hinh PC
+            const MIN_VIEW_ROWS = 16;
+            const MIN_VIEW_COLS = 30;
+
+            const half_r = Math.floor(MIN_VIEW_ROWS / 2);
+            const half_c = Math.floor(MIN_VIEW_COLS / 2);
+
+            return {
+                min_h: Math.min(min_h - PADDING, center_h - half_r),
+                max_h: Math.max(max_h + PADDING, center_h + half_r),
+                min_c: Math.min(min_c - PADDING, center_c - half_c),
+                max_c: Math.max(max_c + PADDING, center_c + half_c)
+            };
+        }
+
+        function ve_ban_co() {
+            const luoi = document.getElementById('luoi_co');
+            const gioi_han = lay_gioi_han();
+            
+            const rows = gioi_han.max_h - gioi_han.min_h + 1;
+            const cols = gioi_han.max_c - gioi_han.min_c + 1;
+
+            // Tinh size dua tren man hinh
             const container = document.getElementById('khung_ban_co');
-            let size = Math.min((container.clientWidth-20)/cols, (container.clientHeight-20)/rows);
-            if (size > 60) size = 60;
+            const padX = 40; const padY = 40;
+            
+            // Tinh size de vua man hinh (Auto fit)
+            let size = Math.min((container.clientWidth - padX)/cols, (container.clientHeight - padY)/rows);
+            
+            // GIOI HAN: Khong cho o co qua be, neu be qua thi de scroll
+            const MIN_SIZE = 35; // Pixel
+            if (size < MIN_SIZE) size = MIN_SIZE;
+            if (size > 60) size = 60; // Max size
 
             luoi.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
             luoi.style.gridTemplateRows = `repeat(${rows}, ${size}px)`;
@@ -357,20 +394,20 @@
             
             const fontSize = Math.max(size*0.6, 12);
 
-            for (let h=min_h; h<=max_h; h++) {
-                for (let c=min_c; c<=max_c; c++) {
+            for (let h=gioi_han.min_h; h<=gioi_han.max_h; h++) {
+                for (let c=gioi_han.min_c; c<=gioi_han.max_c; c++) {
                     const id = `${h},${c}`;
                     const div = document.createElement('div');
                     div.className = 'o_co';
                     div.style.fontSize = `${fontSize}px`;
+                    div.style.width = `${size}px`;
+                    div.style.height = `${size}px`;
                     
                     if (cac_nuoc_di[id]) {
                         div.textContent = cac_nuoc_di[id];
                         div.classList.add(cac_nuoc_di[id] === 'X' ? 'quan_x' : 'quan_o');
                     }
                     if (id === nuoc_di_cuoi) div.classList.add('o_vua_danh');
-                    
-                    // Highlight O Thang (Dong bo tu server)
                     if (hang_thang.includes(id)) div.classList.add('o_thang');
 
                     div.onclick = () => { if(!nguoi_thang && !cac_nuoc_di[id]) gui_nuoc_di(h,c); };
@@ -396,7 +433,6 @@
                     
                     btn_undo.style.display = 'block';
                     btn_undo.textContent = `Xin đi lại (${so_lan_undo[my_role]})`;
-                    // Kiem tra dieu kien Undo: Con luot + Lich su co nuoc va nuoc cuoi la cua minh
                     const canUndo = so_lan_undo[my_role] > 0 && lich_su_nuoc_di.length > 0 && lich_su_nuoc_di[lich_su_nuoc_di.length-1].player === my_role;
                     btn_undo.disabled = !canUndo;
                     if (document.getElementById('btn_undo').textContent === "Đang xin...") btn_undo.disabled = true;
