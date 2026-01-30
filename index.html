@@ -3,31 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Co Caro Vo Tan - Fix Logic</title>
+    <title>Co Caro Vo Tan - Final Fix</title>
     <style>
         /* --- THIET LAP CSS CO BAN --- */
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: #0f172a; /* Slate 900 */
             color: #f1f5f9; /* Slate 100 */
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
         /* --- UI COMPONENTS --- */
         #thong_tin {
-            flex: 0 0 auto;
-            padding: 1rem;
+            flex: 0 0 auto; padding: 1rem;
             background-color: #1e293b; /* Slate 800 */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            z-index: 10; display: flex; justify-content: space-between; align-items: center;
         }
 
         h1 { margin: 0; font-size: 1.25rem; font-weight: bold; color: #facc15; }
@@ -40,11 +32,8 @@
         .vang { background-color: #facc15; color: black; }
 
         .den-luot-ban {
-            color: #4ade80; /* Green 400 */
-            font-weight: bold;
+            color: #4ade80; font-weight: bold; margin-left: 10px; font-size: 0.9rem;
             animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-            margin-left: 10px;
-            font-size: 0.9rem;
         }
         @keyframes pulse { 50% { opacity: .5; } }
 
@@ -76,9 +65,27 @@
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
-        .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
-        .o_thang { background-color: #422006 !important; box-shadow: inset 0 0 0 2px #facc15 !important; }
-        .o_thang .quan_x, .o_thang .quan_o { color: #facc15; }
+        /* Highlight nuoc di cuoi cung (vien xanh Cyan) */
+        .o_vua_danh {
+            background-color: #334155 !important;
+            box-shadow: inset 0 0 0 2px #22d3ee; 
+        }
+
+        /* FIX: O chien thang (Nen Vang, Chu Nau) - Do uu tien cao nhat */
+        .o_thang {
+            background-color: #facc15 !important; /* Yellow 400 */
+            box-shadow: none !important;
+            animation: thang_cuoc 1s ease-in-out infinite alternate;
+        }
+        /* Doi mau quan co ben trong o thang thanh mau nau dam de de doc */
+        .o_thang .quan_x, .o_thang .quan_o { 
+            color: #451a03 !important; /* Amber 950 */
+        }
+        
+        @keyframes thang_cuoc {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
 
         /* --- MODAL --- */
         .modal_overlay {
@@ -270,7 +277,6 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // Sync Data
                     cac_nuoc_di = data.cac_nuoc_di || {};
                     lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                     luot_choi = data.luot_choi;
@@ -278,7 +284,6 @@
                     nuoc_di_cuoi = data.nuoc_di_cuoi || null;
                     so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                     
-                    // User Join
                     if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                         dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                     }
@@ -292,19 +297,24 @@
                         }
                         else if (req.status === 'accepted' && req.requester === my_role) {
                              alert("Đối thủ đã ĐỒNG Ý!");
-                             updateDoc(gameRef, { undo_request: null }); // Clear
+                             updateDoc(gameRef, { undo_request: null }); 
                         }
                         else if (req.status === 'rejected' && req.requester === my_role) {
                              alert("Đối thủ TỪ CHỐI.");
-                             updateDoc(gameRef, { undo_request: null }); // Clear
+                             updateDoc(gameRef, { undo_request: null }); 
                         }
                         else if (req.requester !== my_role) {
                              document.getElementById('modal_confirm_undo').style.display = 'none';
                         }
                     }
 
-                    // Render
-                    if (nguoi_thang) tim_hang_thang_khi_sync(); else hang_thang = [];
+                    // Tinh toan duong thang (Fix loi mat highlight)
+                    if (nguoi_thang) {
+                        tim_hang_thang_khi_sync(); 
+                    } else {
+                        hang_thang = [];
+                    }
+                    
                     cap_nhat_ui_thong_tin();
                     ve_ban_co();
                 } else if (!is_host) alert("Phòng không tồn tại.");
@@ -323,7 +333,6 @@
                 return;
             }
 
-            // Online check
             if (luot_choi !== my_role) return;
 
             const nuoc_moi = { ...cac_nuoc_di, [id]: my_role };
@@ -333,7 +342,6 @@
             const next_turn = winner ? my_role : (my_role === 'X' ? 'O' : 'X');
 
             const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
-            // Full update to prevent sync issues
             await updateDoc(gameRef, {
                 cac_nuoc_di: nuoc_moi,
                 lich_su_nuoc_di: lich_su_moi,
@@ -371,17 +379,16 @@
                 return;
             }
 
-            // GET LATEST DATA TO ENSURE ATOMICITY
             const snap = await getDoc(gameRef);
             const svData = snap.data();
             
             const currentHistory = svData.lich_su_nuoc_di || [];
             if (currentHistory.length === 0) return;
 
-            const moveToRemove = currentHistory.pop(); // Remove last
+            const moveToRemove = currentHistory.pop(); 
             const nguoi_xin = moveToRemove.player;
             const currentBoard = { ...svData.cac_nuoc_di };
-            delete currentBoard[moveToRemove.id]; // Delete move
+            delete currentBoard[moveToRemove.id]; 
 
             const newLastMove = currentHistory.length > 0 ? currentHistory[currentHistory.length-1].id : null;
             const currentUndoCounts = { ...svData.so_lan_undo };
@@ -391,8 +398,8 @@
                 cac_nuoc_di: currentBoard,
                 lich_su_nuoc_di: currentHistory,
                 nuoc_di_cuoi: newLastMove,
-                luot_choi: nguoi_xin, // Return turn
-                nguoi_thang: null, // Reset winner
+                luot_choi: nguoi_xin,
+                nguoi_thang: null,
                 so_lan_undo: currentUndoCounts,
                 undo_request: { requester: nguoi_xin, status: 'accepted' }
             });
@@ -400,11 +407,7 @@
 
         // --- NEW GAME (LOSER GOES FIRST) ---
         window.xu_ly_choi_lai = async function() {
-            // Determine who starts BEFORE clearing state
             let nguoi_di_dau = 'X'; 
-            
-            // Logic: Winner plays last -> Loser plays first
-            // Check local variable 'nguoi_thang'
             if (nguoi_thang === 'X') nguoi_di_dau = 'O';
             else if (nguoi_thang === 'O') nguoi_di_dau = 'X';
 
@@ -413,7 +416,7 @@
                 await updateDoc(gameRef, {
                     cac_nuoc_di: {},
                     lich_su_nuoc_di: [],
-                    luot_choi: nguoi_di_dau, // SET LOSER TO START
+                    luot_choi: nguoi_di_dau,
                     nguoi_thang: null,
                     nuoc_di_cuoi: null,
                     so_lan_undo: {X:3, O:3},
@@ -452,9 +455,12 @@
             if (line) { nguoi_thang = player; hang_thang = line; }
         }
 
+        // Fix logic dong bo duong thang
         function tim_hang_thang_khi_sync() {
+            hang_thang = []; // Reset truoc khi tim
             const keys = Object.keys(cac_nuoc_di);
             for (let key of keys) {
+                // Chi quet cac quan co cua nguoi thang
                 if (cac_nuoc_di[key] === nguoi_thang) {
                     const [h, c] = key.split(',').map(Number);
                     const line = tinh_toan_thang(h, c, nguoi_thang, cac_nuoc_di);
@@ -503,8 +509,11 @@
                         o.textContent = q;
                         o.classList.add(q === 'X' ? 'quan_x' : 'quan_o');
                     }
+                    
+                    // Logic: Neu o vua danh cung la o thang -> Class o_thang se de len
                     if (id === nuoc_di_cuoi) o.classList.add('o_vua_danh');
                     if (hang_thang.includes(id)) o.classList.add('o_thang');
+
                     o.onclick = () => xu_ly_click_o(h, c);
                     luoi.appendChild(o);
                 }
@@ -524,7 +533,6 @@
             const btn_choi_lai = document.getElementById('btn_choi_lai');
             const btn_undo = document.getElementById('btn_undo');
             
-            // 1. Text Luot
             if (nguoi_thang) {
                 div.innerHTML = `<span class="vang" style="padding:4px 8px; font-weight:bold; border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
                 if (is_host || !room_id) btn_choi_lai.style.display = 'block';
@@ -541,17 +549,14 @@
                 }
                 btn_choi_lai.style.display = 'none';
 
-                // 2. Button Undo Logic
                 if (room_id) {
                     const con_lai = so_lan_undo[my_role];
                     btn_undo.textContent = `Xin đi lại (${con_lai})`;
                     btn_undo.style.display = 'block';
 
                     let co_the_undo = false;
-                    // Condition: I have counts left AND history exists
                     if (con_lai > 0 && lich_su_nuoc_di.length > 0) {
                         const last = lich_su_nuoc_di[lich_su_nuoc_di.length - 1];
-                        // Condition: The LAST move was MINE (so now it's opponent's turn)
                         if (last.player === my_role) {
                             co_the_undo = true;
                         }
