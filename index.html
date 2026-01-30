@@ -2,41 +2,49 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Co Caro Vo Tan - PC Full Screen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Co Caro Vo Tan - Auto Fit & Zoom</title>
     <style>
         /* --- CSS CO BAN --- */
+        :root { --cell-size: 40px; --font-size: 20px; }
         body { margin: 0; padding: 0; background-color: #0f172a; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- UI COMPONENTS --- */
-        #thong_tin { flex: 0 0 auto; padding: 1rem; background-color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
-        h1 { margin: 0; font-size: 1.25rem; font-weight: bold; color: #facc15; }
-        .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; }
-        .luot_choi_hien_thi { padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-weight: bold; }
+        /* --- UI HEADER --- */
+        #thong_tin { flex: 0 0 auto; padding: 0.75rem 1rem; background-color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .left-info { display: flex; flex-direction: column; gap: 4px; }
+        h1 { margin: 0; font-size: 1.1rem; font-weight: bold; color: #facc15; }
+        .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        
+        .luot_choi_hien_thi { padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
         .xanh { background-color: #3b82f6; color: white; }
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
-        .den-luot-ban { color: #4ade80; font-weight: bold; margin-left: 10px; font-size: 0.9rem; animation: pulse 2s infinite; }
+        .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.8rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; }
         @keyframes pulse { 50% { opacity: .5; } }
 
-        button { background-color: #334155; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+        /* BUTTONS */
+        button { background-color: #334155; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.85rem; white-space: nowrap; }
         button:hover { background-color: #475569; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background-color: #2563eb; } .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-warning { background-color: #d97706; } .btn-warning:hover { background-color: #b45309; }
-        .btn-success { background-color: #16a34a; } .btn-success:hover { background-color: #15803d; }
-        .btn-danger { background-color: #dc2626; } .btn-danger:hover { background-color: #b91c1c; }
+        .btn-primary { background-color: #2563eb; }
+        .btn-warning { background-color: #d97706; }
 
-        /* --- BAN CO (FIXED SCROLL) --- */
+        /* --- ZOOM CONTROL --- */
+        .zoom-controls { display: flex; align-items: center; gap: 5px; background: #0f172a; padding: 4px 8px; border-radius: 20px; border: 1px solid #334155; }
+        #zoom_slider { width: 80px; accent-color: #facc15; cursor: pointer; }
+        .zoom-icon { font-size: 14px; color: #94a3b8; }
+
+        /* --- BAN CO CONTAINER --- */
         #khung_ban_co { 
             flex: 1; 
-            overflow: auto; /* Cho phep cuon neu ban co qua lon */
+            overflow: auto; /* Cho phep cuon khi zoom to */
             display: flex; 
-            justify-content: center; /* Can giua neu ban co nho hon man hinh */
+            /* Can giua khi ban co nho hon man hinh */
+            justify-content: center; 
             align-items: center; 
-            padding: 20px;
             background-color: #0f172a;
-            position: relative; 
+            position: relative;
+            touch-action: pan-x pan-y; /* Cho phep keo tha tren mobile */
         }
 
         #luoi_co { 
@@ -44,20 +52,26 @@
             background-color: #334155; 
             gap: 1px; 
             border: 1px solid #334155; 
-            margin: auto; /* Can giua trong scroll view */
+            margin: auto; /* Can giua */
+            /* Kich thuoc o co duoc dieu khien boi bien CSS */
+            grid-auto-rows: var(--cell-size);
+            grid-auto-columns: var(--cell-size);
+            transition: all 0.2s ease-out; /* Hieu ung zoom muot */
         }
 
         .o_co { 
             background-color: #1e293b; 
             display: flex; justify-content: center; align-items: center; 
             cursor: pointer; user-select: none; font-weight: bold; position: relative; 
-            /* Kich thuoc co dinh tu JS */
+            width: var(--cell-size);
+            height: var(--cell-size);
+            font-size: var(--font-size);
         }
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
+        /* Highlight */
         .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
-
         .o_co.o_thang {
             background-color: #facc15 !important; 
             box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important;
@@ -65,7 +79,7 @@
             z-index: 100;
         }
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { color: #451a03 !important; }
-        @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.1); } }
+        @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
         /* --- MODAL & FOOTER --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
@@ -73,21 +87,28 @@
         .qr_image { background: white; padding: 10px; border-radius: 4px; margin: 1rem 0; width: 200px; height: 200px; }
         .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
-        #ban_quyen { padding: 0.5rem; text-align: center; font-size: 0.75rem; color: #64748b; background-color: #0f172a; border-top: 1px solid #1e293b; }
+        #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #0f172a; border-top: 1px solid #1e293b; }
     </style>
 </head>
 <body>
 
     <div id="thong_tin">
-        <h1>XO Online</h1>
-        <div class="bang_dieu_khien">
-            <div id="trang_thai_luot" style="display: flex; align-items: center;">
+        <div class="left-info">
+            <h1>XO Online</h1>
+            <div id="trang_thai_luot">
                 <span id="hien_thi_luot" class="luot_choi_hien_thi do">X</span>
-                <span id="den_luot_ban" class="den-luot-ban" style="display:none">ĐẾN LƯỢT BẠN!</span>
             </div>
+        </div>
+        
+        <div class="bang_dieu_khien">
+            <div class="zoom-controls">
+                <span class="zoom-icon">🔍-</span>
+                <input type="range" id="zoom_slider" min="10" max="80" value="40" oninput="cap_nhat_zoom(this.value)">
+                <span class="zoom-icon">🔍+</span>
+            </div>
+            <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại (3)</button>
+            <button id="btn_choi_lai" onclick="xu_ly_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
             <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Kết nối...</button>
-            <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin đi lại (3)</button>
-            <button id="btn_choi_lai" onclick="xu_ly_choi_lai()" style="display:none;">Ván Mới</button>
         </div>
     </div>
 
@@ -112,8 +133,8 @@
             <h3 style="color:#facc15; margin-top:0">Yêu cầu đi lại</h3>
             <p>Đối thủ muốn xin đi lại nước vừa rồi.</p>
             <div class="modal_actions">
-                <button class="btn-success" onclick="xu_ly_phan_hoi_undo(true)">Đồng ý</button>
-                <button class="btn-danger" onclick="xu_ly_phan_hoi_undo(false)">Từ chối</button>
+                <button class="btn-primary" style="background:#16a34a" onclick="xu_ly_phan_hoi_undo(true)">Đồng ý</button>
+                <button class="btn-primary" style="background:#dc2626" onclick="xu_ly_phan_hoi_undo(false)">Từ chối</button>
             </div>
         </div>
     </div>
@@ -135,7 +156,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
+
         let user_id = null;
         let room_id = null;
         let is_host = false;
@@ -149,9 +170,7 @@
         let nuoc_di_cuoi = null;
         let so_lan_undo = { X: 3, O: 3 };
         
-        const SO_QUAN_THANG = 5;
-        // PADDING nho hon vi ta dung Minimum Viewport
-        const PADDING = 2; 
+        const PADDING = 1; // Them 1 o moi phia de thoang mat
 
         async function init() {
             try {
@@ -168,7 +187,6 @@
             if (roomParam) {
                 room_id = roomParam; is_host = false; my_role = 'O'; 
                 document.getElementById('btn_tao_phong').style.display = 'none';
-                document.querySelector('h1').textContent = "Phòng: " + room_id.substring(0,4);
                 lang_nghe_phong(room_id);
             } else {
                 ve_ban_co();
@@ -191,7 +209,6 @@
             hien_thi_qr(room_id);
             lang_nghe_phong(room_id);
             document.getElementById('btn_tao_phong').style.display = 'none';
-            document.querySelector('h1').textContent = "Phòng chủ: " + room_id;
         }
 
         function hien_thi_qr(id) {
@@ -236,6 +253,7 @@
 
                 cap_nhat_ui();
                 ve_ban_co();
+                auto_fit_board(); // TU DONG ZOOM VUA MAN HINH
             });
         }
 
@@ -248,7 +266,7 @@
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
                 if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
                 else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
-                ve_ban_co(); cap_nhat_ui(); return;
+                ve_ban_co(); cap_nhat_ui(); auto_fit_board(); return;
             }
 
             if (luot_choi !== my_role) return;
@@ -268,8 +286,48 @@
                 nuoc_di_cuoi: id,
                 undo_request: null
             });
+            // auto_fit_board duoc goi boi onSnapshot
         }
 
+        // --- ZOOM & FIT LOGIC (MOI) ---
+        window.cap_nhat_zoom = function(val) {
+            const root = document.documentElement;
+            root.style.setProperty('--cell-size', `${val}px`);
+            root.style.setProperty('--font-size', `${Math.max(val * 0.5, 10)}px`);
+        }
+
+        function auto_fit_board() {
+            // Tinh toan kich thuoc toan bo vung co quan co
+            const gioi_han = lay_gioi_han();
+            const cols = gioi_han.max_c - gioi_han.min_c + 1;
+            const rows = gioi_han.max_h - gioi_han.min_h + 1;
+
+            const container = document.getElementById('khung_ban_co');
+            const cw = container.clientWidth - 20; // Tru padding
+            const ch = container.clientHeight - 20;
+
+            // Tinh size o co de vua khit man hinh
+            let fitSize = Math.min(cw / cols, ch / rows);
+            
+            // Gioi han: Neu be qua thi giu o muc toi thieu de nhin thay
+            // Neu lon qua thi gioi han lai
+            if (fitSize > 60) fitSize = 60;
+            
+            // Cap nhat Slider va CSS
+            const slider = document.getElementById('zoom_slider');
+            slider.value = fitSize;
+            cap_nhat_zoom(fitSize);
+
+            // Cuon ve trung tam (neu bi tran)
+            setTimeout(() => {
+                const luoi = document.getElementById('luoi_co');
+                // Scroll center logic simple
+                // container.scrollTop = (luoi.clientHeight - ch) / 2;
+                // container.scrollLeft = (luoi.clientWidth - cw) / 2;
+            }, 50);
+        }
+
+        // --- CAC HAM KHAC GIU NGUYEN ---
         window.gui_yeu_cau_undo = async () => {
             if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return;
             if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; }
@@ -292,14 +350,9 @@
                 data.so_lan_undo[last.player]--;
 
                 await updateDoc(doc(db, 'games', room_id), {
-                    cac_nuoc_di: data.cac_nuoc_di,
-                    lich_su_nuoc_di: hist,
-                    nuoc_di_cuoi: prev,
-                    luot_choi: last.player,
-                    nguoi_thang: null,
-                    hang_thang: [],
-                    so_lan_undo: data.so_lan_undo,
-                    undo_request: { requester: last.player, status: 'accepted' }
+                    cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, nuoc_di_cuoi: prev,
+                    luot_choi: last.player, nguoi_thang: null, hang_thang: [],
+                    so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' }
                 });
             }
         }
@@ -315,7 +368,7 @@
             } else {
                 cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = next_start;
                 nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; so_lan_undo = {X:3, O:3};
-                cap_nhat_ui(); ve_ban_co();
+                cap_nhat_ui(); ve_ban_co(); auto_fit_board();
             }
         }
 
@@ -336,7 +389,6 @@
              return null;
         }
 
-        // --- NEW RENDER LOGIC: FULL SCREEN + SCROLL ---
         function lay_gioi_han() {
             const keys = Object.keys(cac_nuoc_di);
             let min_h = 0, max_h = 0, min_c = 0, max_c = 0;
@@ -350,22 +402,14 @@
                 });
             }
 
-            // Tinh tam cua ban co
-            const center_h = Math.floor((min_h + max_h) / 2);
-            const center_c = Math.floor((min_c + max_c) / 2);
-
-            // CAU HINH: Luon hien thi it nhat 30 cot, 16 hang de full man hinh PC
-            const MIN_VIEW_ROWS = 16;
-            const MIN_VIEW_COLS = 30;
-
-            const half_r = Math.floor(MIN_VIEW_ROWS / 2);
-            const half_c = Math.floor(MIN_VIEW_COLS / 2);
+            // Mac dinh hien thi 15x15 neu chua danh gi
+            if (keys.length === 0) {
+                return { min_h: -7, max_h: 7, min_c: -7, max_c: 7 };
+            }
 
             return {
-                min_h: Math.min(min_h - PADDING, center_h - half_r),
-                max_h: Math.max(max_h + PADDING, center_h + half_r),
-                min_c: Math.min(min_c - PADDING, center_c - half_c),
-                max_c: Math.max(max_c + PADDING, center_c + half_c)
+                min_h: min_h - PADDING, max_h: max_h + PADDING,
+                min_c: min_c - PADDING, max_c: max_c + PADDING
             };
         }
 
@@ -376,32 +420,15 @@
             const rows = gioi_han.max_h - gioi_han.min_h + 1;
             const cols = gioi_han.max_c - gioi_han.min_c + 1;
 
-            // Tinh size dua tren man hinh
-            const container = document.getElementById('khung_ban_co');
-            const padX = 40; const padY = 40;
-            
-            // Tinh size de vua man hinh (Auto fit)
-            let size = Math.min((container.clientWidth - padX)/cols, (container.clientHeight - padY)/rows);
-            
-            // GIOI HAN: Khong cho o co qua be, neu be qua thi de scroll
-            const MIN_SIZE = 35; // Pixel
-            if (size < MIN_SIZE) size = MIN_SIZE;
-            if (size > 60) size = 60; // Max size
-
-            luoi.style.gridTemplateColumns = `repeat(${cols}, ${size}px)`;
-            luoi.style.gridTemplateRows = `repeat(${rows}, ${size}px)`;
+            luoi.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+            luoi.style.gridTemplateRows = `repeat(${rows}, auto)`;
             luoi.innerHTML = '';
             
-            const fontSize = Math.max(size*0.6, 12);
-
             for (let h=gioi_han.min_h; h<=gioi_han.max_h; h++) {
                 for (let c=gioi_han.min_c; c<=gioi_han.max_c; c++) {
                     const id = `${h},${c}`;
                     const div = document.createElement('div');
                     div.className = 'o_co';
-                    div.style.fontSize = `${fontSize}px`;
-                    div.style.width = `${size}px`;
-                    div.style.height = `${size}px`;
                     
                     if (cac_nuoc_di[id]) {
                         div.textContent = cac_nuoc_di[id];
@@ -432,7 +459,7 @@
                     if (luot_choi === my_role) html += ` <span class="den-luot-ban">ĐẾN LƯỢT BẠN!</span>`;
                     
                     btn_undo.style.display = 'block';
-                    btn_undo.textContent = `Xin đi lại (${so_lan_undo[my_role]})`;
+                    btn_undo.textContent = `Xin lại (${so_lan_undo[my_role]})`;
                     const canUndo = so_lan_undo[my_role] > 0 && lich_su_nuoc_di.length > 0 && lich_su_nuoc_di[lich_su_nuoc_di.length-1].player === my_role;
                     btn_undo.disabled = !canUndo;
                     if (document.getElementById('btn_undo').textContent === "Đang xin...") btn_undo.disabled = true;
@@ -442,7 +469,7 @@
             }
         }
 
-        window.addEventListener('resize', ve_ban_co);
+        window.addEventListener('resize', auto_fit_board);
         init();
     </script>
 </body>
