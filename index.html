@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Co Caro Vo Tan - Fixed Win Highlight</title>
+    <title>Co Caro Vo Tan - Final Stable</title>
     <style>
         /* --- THIET LAP CSS CO BAN --- */
         body {
@@ -65,25 +65,23 @@
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
-        /* 1. Highlight nuoc di cuoi cung (vien xanh Cyan) */
+        /* Highlight nuoc di cuoi cung */
         .o_vua_danh {
             background-color: #334155 !important;
             box-shadow: inset 0 0 0 2px #22d3ee; 
         }
 
-        /* 2. Highlight O CHIEN THANG (Uu tien cao nhat) */
-        /* Su dung specificity cao hon de de len class o_vua_danh */
+        /* --- FIX CSS QUAN TRONG: O CHIEN THANG --- */
         .o_co.o_thang {
-            background-color: #facc15 !important; /* Vang ruc */
-            box-shadow: 0 0 10px #facc15, inset 0 0 0 2px #fff !important;
+            background-color: #facc15 !important; /* Nen Vang */
+            box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important;
             animation: thang_cuoc 0.5s ease-in-out infinite alternate;
-            z-index: 10; /* Noi len tren */
+            z-index: 100;
         }
         
-        /* Doi mau chu ben trong o thang thanh den/nau de de doc */
+        /* FIX: Mau chu phai la mau nau/den de noi tren nen vang */
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { 
-            color: #451a03 !important; /* Nau dam */
-            text-shadow: none;
+            color: #451a03 !important; /* Mau Nau Dam */
         }
         
         @keyframes thang_cuoc {
@@ -289,7 +287,6 @@
                     nuoc_di_cuoi = data.nuoc_di_cuoi || null;
                     so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                     
-                    // User Join
                     if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                         dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                     }
@@ -314,7 +311,7 @@
                         }
                     }
 
-                    // *** QUAN TRONG: Tinh toan lai duong thang khi sync ve ***
+                    // Tinh toan duong thang (Fix loi mat highlight)
                     if (nguoi_thang) {
                         tim_hang_thang_khi_sync(); 
                     } else {
@@ -341,10 +338,24 @@
 
             if (luot_choi !== my_role) return;
 
-            const nuoc_moi = { ...cac_nuoc_di, [id]: my_role };
+            // --- OPTIMISTIC UI UPDATE (Cap nhat ngay lap tuc) ---
+            // Giup hien thi quan co ngay ca khi mang lag hoac server xu ly cham
+            cac_nuoc_di[id] = my_role; 
+            nuoc_di_cuoi = id;
+            
+            // Kiem tra thang cuc bo de hien thi ngay
+            const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
+            if (thang_cuc_bo) {
+                nguoi_thang = my_role;
+                hang_thang = thang_cuc_bo;
+            }
+            
+            ve_ban_co(); // Ve ngay lap tuc!
+
+            // --- SAU DO MOI GUI LEN SERVER ---
+            const nuoc_moi = { ...cac_nuoc_di }; // Da bao gom quan moi
             const lich_su_moi = [...lich_su_nuoc_di, { id: id, player: my_role }];
-            const thang = tinh_toan_thang(h, c, my_role, nuoc_moi);
-            const winner = thang ? my_role : null;
+            const winner = thang_cuc_bo ? my_role : null;
             const next_turn = winner ? my_role : (my_role === 'X' ? 'O' : 'X');
 
             const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
@@ -514,11 +525,12 @@
                         o.classList.add(q === 'X' ? 'quan_x' : 'quan_o');
                     }
                     
-                    // Logic to mau
                     if (id === nuoc_di_cuoi) o.classList.add('o_vua_danh');
                     
-                    // Quan trong: O thang se duoc them class cuoi cung de de len tat ca
-                    if (hang_thang.includes(id)) o.classList.add('o_thang');
+                    // Logic: Neu o nam trong hang thang -> Them class va de len tat ca
+                    if (hang_thang.includes(id)) {
+                        o.classList.add('o_thang');
+                    }
 
                     o.onclick = () => xu_ly_click_o(h, c);
                     luoi.appendChild(o);
