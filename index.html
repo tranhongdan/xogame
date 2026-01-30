@@ -3,39 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Compact Start</title>
+    <title>Co Caro Vo Tan - Chat</title>
     <style>
         /* --- CSS BIEN --- */
-        :root { 
-            --cell-size: 40px; 
-            --font-size: 20px; 
-        }
+        :root { --cell-size: 40px; --font-size: 20px; }
 
         /* --- CSS CO BAN --- */
-        body { 
-            margin: 0; padding: 0; 
-            background-color: #0f172a; 
-            color: #f1f5f9; 
-            font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
-            user-select: none;
-        }
+        body { margin: 0; padding: 0; background-color: #0f172a; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
 
         /* --- HEADER UI --- */
-        #thong_tin { 
-            flex: 0 0 auto; 
-            padding: 0.75rem 1rem; 
-            background-color: #1e293b; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-            z-index: 20; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            gap: 10px; 
-        }
+        #thong_tin { flex: 0 0 auto; padding: 0.75rem 1rem; background-color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .left-info { display: flex; flex-direction: column; gap: 4px; }
         h1 { margin: 0; font-size: 1.1rem; font-weight: bold; color: #facc15; }
         .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; }
@@ -54,51 +31,69 @@
         .btn-warning { background-color: #d97706; }
 
         /* --- KHUNG BAN CO --- */
-        #khung_ban_co { 
-            flex: 1; 
-            overflow: hidden; 
-            position: relative;
-            background-color: #0f172a;
-            cursor: grab; 
-            touch-action: none; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        #khung_ban_co { flex: 1; overflow: hidden; position: relative; background-color: #0f172a; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
         #khung_ban_co:active { cursor: grabbing; }
 
-        #luoi_co { 
-            display: grid; 
-            background-color: #334155; 
-            gap: 1px; 
-            border: 1px solid #334155; 
-            grid-auto-rows: var(--cell-size);
-            grid-auto-columns: var(--cell-size);
-            transform-origin: center center;
-        }
+        #luoi_co { display: grid; background-color: #334155; gap: 1px; border: 1px solid #334155; grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); transform-origin: center center; }
 
-        .o_co { 
-            background-color: #1e293b; 
-            display: flex; justify-content: center; align-items: center; 
-            cursor: pointer; 
-            font-weight: bold; 
-            position: relative; 
-            width: var(--cell-size);
-            height: var(--cell-size);
-            font-size: var(--font-size);
-        }
+        .o_co { background-color: #1e293b; display: flex; justify-content: center; align-items: center; cursor: pointer; font-weight: bold; position: relative; width: var(--cell-size); height: var(--cell-size); font-size: var(--font-size); }
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
-        
         .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
-        .o_co.o_thang {
-            background-color: #facc15 !important; 
-            box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important;
-            animation: thang_cuoc 0.5s infinite alternate;
-            z-index: 100;
-        }
+        .o_co.o_thang { background-color: #facc15 !important; box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important; animation: thang_cuoc 0.5s infinite alternate; z-index: 100; }
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { color: #451a03 !important; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        /* --- CHAT UI --- */
+        #nut_mo_chat {
+            position: fixed; bottom: 80px; right: 20px;
+            width: 50px; height: 50px; border-radius: 50%;
+            background-color: #2563eb; color: white;
+            display: none; justify-content: center; align-items: center;
+            font-size: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 30; border: none;
+        }
+        #thong_bao_tin_moi {
+            position: absolute; top: -5px; right: -5px;
+            background: #ef4444; color: white; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 12px;
+            display: none; justify-content: center; align-items: center;
+        }
+
+        #khung_chat {
+            position: fixed; bottom: 80px; right: 20px;
+            width: 300px; height: 400px;
+            background-color: #1e293b;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            display: none; flex-direction: column;
+            z-index: 31; border: 1px solid #334155;
+            max-width: 85vw; /* Mobile responsive */
+        }
+        .chat-header {
+            padding: 10px; background: #0f172a; border-radius: 8px 8px 0 0;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+        .chat-body {
+            flex: 1; overflow-y: auto; padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .chat-footer {
+            padding: 10px; display: flex; gap: 5px; border-top: 1px solid #334155;
+        }
+        #chat_input {
+            flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #334155;
+            background: #0f172a; color: white; outline: none;
+        }
+        
+        .tin-nhan {
+            padding: 6px 10px; border-radius: 6px; font-size: 0.9rem;
+            max-width: 80%; word-wrap: break-word;
+        }
+        .tin-ban { align-self: flex-end; background-color: #2563eb; color: white; }
+        .tin-doi-thu { align-self: flex-start; background-color: #334155; color: #f1f5f9; }
+        .chat-role { font-size: 0.7rem; opacity: 0.7; margin-bottom: 2px; }
 
         /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
@@ -107,12 +102,7 @@
         .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
         #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #0f172a; border-top: 1px solid #1e293b; }
-        
-        .tutorial-hint {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px;
-            font-size: 0.75rem; color: #94a3b8; pointer-events: none;
-        }
+        .tutorial-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; color: #94a3b8; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -135,6 +125,23 @@
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
         <div class="tutorial-hint" id="hint_text">Kéo để di chuyển • Lăn chuột/2 ngón để Zoom</div>
+    </div>
+
+    <button id="nut_mo_chat" onclick="bat_tat_chat()">
+        💬
+        <div id="thong_bao_tin_moi">!</div>
+    </button>
+
+    <div id="khung_chat">
+        <div class="chat-header">
+            <span style="font-weight:bold; color:#facc15">Chat Room</span>
+            <button onclick="bat_tat_chat()" style="padding:2px 8px; background:none; font-size:1.2rem">✖</button>
+        </div>
+        <div id="noi_dung_chat" class="chat-body"></div>
+        <div class="chat-footer">
+            <input type="text" id="chat_input" placeholder="Nhập tin nhắn..." onkeypress="xu_ly_enter(event)">
+            <button class="btn-primary" onclick="gui_tin_nhan()">Gửi</button>
+        </div>
     </div>
 
     <div id="ban_quyen">Bản quyền: Trần Hồng Dân. Email: tranhongdan@tranphudlk.edu.vn</div>
@@ -190,6 +197,9 @@
         let hang_thang = []; 
         let nuoc_di_cuoi = null;
         let so_lan_undo = { X: 3, O: 3 };
+        // Chat vars
+        let lich_su_chat = [];
+        let is_chat_open = false;
         
         const PADDING = 3; 
         let currentZoom = 40; 
@@ -220,35 +230,24 @@
         function setup_drag_and_zoom() {
             const container = document.getElementById('khung_ban_co');
             const hint = document.getElementById('hint_text');
-            
             let isDown = false;
             let startX, startY, scrollLeft, scrollTop;
 
             const startDrag = (e) => {
-                isDown = true;
-                container.style.cursor = 'grabbing';
-                hint.style.display = 'none'; 
+                isDown = true; container.style.cursor = 'grabbing'; hint.style.display = 'none'; 
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
-                startX = pageX - container.offsetLeft;
-                startY = pageY - container.offsetTop;
-                scrollLeft = container.scrollLeft;
-                scrollTop = container.scrollTop;
+                startX = pageX - container.offsetLeft; startY = pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft; scrollTop = container.scrollTop;
             };
-
             const endDrag = () => { isDown = false; container.style.cursor = 'grab'; };
-
             const moveDrag = (e) => {
-                if (!isDown) return;
-                e.preventDefault();
+                if (!isDown) return; e.preventDefault();
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
-                const x = pageX - container.offsetLeft;
-                const y = pageY - container.offsetTop;
-                const walkX = (x - startX);
-                const walkY = (y - startY);
-                container.scrollLeft = scrollLeft - walkX;
-                container.scrollTop = scrollTop - walkY;
+                const walkX = (pageX - container.offsetLeft - startX);
+                const walkY = (pageY - container.offsetTop - startY);
+                container.scrollLeft = scrollLeft - walkX; container.scrollTop = scrollTop - walkY;
             };
 
             container.addEventListener('mousedown', startDrag);
@@ -258,30 +257,12 @@
             container.addEventListener('touchstart', (e) => { if(e.touches.length === 1) startDrag(e); });
             container.addEventListener('touchend', endDrag);
             container.addEventListener('touchmove', (e) => { if(e.touches.length === 1) moveDrag(e); });
-
-            container.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                updateZoom(Math.sign(e.deltaY) * -5);
-            }, { passive: false });
-
-            let initialDistance = 0;
-            container.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) initialDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            });
-            container.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                    const delta = (currentDistance - initialDistance) * 0.1;
-                    if (Math.abs(delta) > 1) { updateZoom(delta); initialDistance = currentDistance; }
-                }
-            }, { passive: false });
+            container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
         }
 
         function updateZoom(delta) {
             let newZoom = currentZoom + delta;
-            if (newZoom < 15) newZoom = 15; 
-            if (newZoom > 100) newZoom = 100;
+            if (newZoom < 15) newZoom = 15; if (newZoom > 100) newZoom = 100;
             currentZoom = newZoom;
             const root = document.documentElement;
             root.style.setProperty('--cell-size', `${currentZoom}px`);
@@ -299,7 +280,9 @@
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
                 nguoi_tao: user_id, nguoi_tham_gia: null,
-                nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, ngay_tao: Date.now()
+                nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, 
+                lich_su_chat: [], // NEW: Chat array
+                ngay_tao: Date.now()
             });
 
             hien_thi_qr(room_id);
@@ -321,6 +304,7 @@
             onSnapshot(doc(db, 'games', id), (docSnap) => {
                 if (!docSnap.exists()) return;
                 const data = docSnap.data();
+                
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
@@ -329,6 +313,14 @@
                 hang_thang = data.hang_thang || [];
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 
+                // SYNC CHAT
+                const chat_cu = lich_su_chat.length;
+                lich_su_chat = data.lich_su_chat || [];
+                render_chat();
+                if (lich_su_chat.length > chat_cu && !is_chat_open) {
+                    document.getElementById('thong_bao_tin_moi').style.display = 'flex';
+                }
+
                 if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                     dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                 }
@@ -380,6 +372,69 @@
             });
         }
 
+        // --- CHAT LOGIC ---
+        window.bat_tat_chat = function() {
+            const box = document.getElementById('khung_chat');
+            const btn = document.getElementById('nut_mo_chat');
+            const badge = document.getElementById('thong_bao_tin_moi');
+            
+            if (box.style.display === 'flex') {
+                box.style.display = 'none';
+                btn.style.display = 'flex'; // Hien lai nut
+                is_chat_open = false;
+            } else {
+                box.style.display = 'flex';
+                btn.style.display = 'none'; // An nut khi mo chat
+                badge.style.display = 'none'; // Tat thong bao
+                is_chat_open = true;
+                // Scroll to bottom
+                const body = document.getElementById('noi_dung_chat');
+                body.scrollTop = body.scrollHeight;
+                document.getElementById('chat_input').focus();
+            }
+        }
+
+        window.render_chat = function() {
+            const body = document.getElementById('noi_dung_chat');
+            body.innerHTML = '';
+            lich_su_chat.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `tin-nhan ${msg.sender === my_role ? 'tin-ban' : 'tin-doi-thu'}`;
+                
+                const role = document.createElement('div');
+                role.className = 'chat-role';
+                role.textContent = msg.sender === my_role ? 'Tôi' : 'Đối thủ';
+                
+                const text = document.createElement('div');
+                text.textContent = msg.content;
+                
+                div.appendChild(role);
+                div.appendChild(text);
+                body.appendChild(div);
+            });
+            body.scrollTop = body.scrollHeight;
+        }
+
+        window.gui_tin_nhan = async function() {
+            const input = document.getElementById('chat_input');
+            const text = input.value.trim();
+            if (!text || !room_id) return;
+            
+            input.value = '';
+            const new_msg = { sender: my_role, content: text, time: Date.now() };
+            const new_history = [...lich_su_chat, new_msg];
+            
+            // Cap nhat Firestore
+            await updateDoc(doc(db, 'games', room_id), {
+                lich_su_chat: new_history
+            });
+        }
+        
+        window.xu_ly_enter = function(e) {
+            if (e.key === 'Enter') gui_tin_nhan();
+        }
+
+        // --- CAC FUNCTION KHAC ---
         window.gui_yeu_cau_undo = async () => {
             if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return;
             if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; }
@@ -441,7 +496,6 @@
              return null;
         }
 
-        // --- RENDER COMPACT (SUA LOI RONG) ---
         function ve_ban_co() {
             const luoi = document.getElementById('luoi_co');
             const keys = Object.keys(cac_nuoc_di);
@@ -454,10 +508,7 @@
                     if(h<min_h) min_h=h; if(h>max_h) max_h=h;
                     if(c<min_c) min_c=c; if(c>max_c) max_c=c;
                 });
-            } else {
-                // FIX: Mac dinh chi la 1 diem (0,0) -> Them padding 3 -> 7x7
-                min_h = 0; max_h = 0; min_c = 0; max_c = 0;
-            }
+            } else { min_h = 0; max_h = 0; min_c = 0; max_c = 0; }
 
             const start_h = min_h - PADDING;
             const end_h = max_h + PADDING;
@@ -493,7 +544,10 @@
             const div = document.getElementById('trang_thai_luot');
             const btn_replay = document.getElementById('btn_choi_lai');
             const btn_undo = document.getElementById('btn_undo');
+            const btn_chat = document.getElementById('nut_mo_chat');
             
+            if (room_id && !is_chat_open) btn_chat.style.display = 'flex'; // Hien nut chat
+
             if (nguoi_thang) {
                 div.innerHTML = `<span class="vang" style="padding:4px 8px;border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
                 if (is_host || !room_id) btn_replay.style.display = 'block';
