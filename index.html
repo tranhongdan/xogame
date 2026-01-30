@@ -3,17 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Auto Fit & Zoom</title>
+    <title>Co Caro Vo Tan - Drag & Zoom</title>
     <style>
-        /* --- CSS CO BAN --- */
-        :root { --cell-size: 40px; --font-size: 20px; }
-        body { margin: 0; padding: 0; background-color: #0f172a; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        /* --- CSS BIEN --- */
+        :root { 
+            --cell-size: 40px; 
+            --font-size: 20px; 
+        }
 
-        /* --- UI HEADER --- */
-        #thong_tin { flex: 0 0 auto; padding: 0.75rem 1rem; background-color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        /* --- CSS CO BAN --- */
+        body { 
+            margin: 0; padding: 0; 
+            background-color: #0f172a; 
+            color: #f1f5f9; 
+            font-family: ui-sans-serif, system-ui, sans-serif; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; /* Ngan cuon trang web */
+            user-select: none; /* Ngan boi den text khi keo tha */
+        }
+
+        /* --- HEADER UI --- */
+        #thong_tin { 
+            flex: 0 0 auto; 
+            padding: 0.75rem 1rem; 
+            background-color: #1e293b; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            z-index: 20; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 10px; 
+        }
         .left-info { display: flex; flex-direction: column; gap: 4px; }
         h1 { margin: 0; font-size: 1.1rem; font-weight: bold; color: #facc15; }
-        .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+        .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; }
         
         .luot_choi_hien_thi { padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
         .xanh { background-color: #3b82f6; color: white; }
@@ -22,47 +47,44 @@
         .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.8rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; }
         @keyframes pulse { 50% { opacity: .5; } }
 
-        /* BUTTONS */
         button { background-color: #334155; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.85rem; white-space: nowrap; }
         button:hover { background-color: #475569; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
         .btn-warning { background-color: #d97706; }
 
-        /* --- ZOOM CONTROL --- */
-        .zoom-controls { display: flex; align-items: center; gap: 5px; background: #0f172a; padding: 4px 8px; border-radius: 20px; border: 1px solid #334155; }
-        #zoom_slider { width: 80px; accent-color: #facc15; cursor: pointer; }
-        .zoom-icon { font-size: 14px; color: #94a3b8; }
-
-        /* --- BAN CO CONTAINER --- */
+        /* --- KHUNG BAN CO (DRAGGABLE AREA) --- */
         #khung_ban_co { 
             flex: 1; 
-            overflow: auto; /* Cho phep cuon khi zoom to */
-            display: flex; 
-            /* Can giua khi ban co nho hon man hinh */
-            justify-content: center; 
-            align-items: center; 
-            background-color: #0f172a;
+            overflow: hidden; /* An thanh cuon mac dinh */
             position: relative;
-            touch-action: pan-x pan-y; /* Cho phep keo tha tren mobile */
+            background-color: #0f172a;
+            cursor: grab; /* Con tro ban tay */
+            touch-action: none; /* Tat cu chi mac dinh cua trinh duyet de tu xu ly */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        #khung_ban_co:active { cursor: grabbing; }
 
         #luoi_co { 
             display: grid; 
             background-color: #334155; 
             gap: 1px; 
             border: 1px solid #334155; 
-            margin: auto; /* Can giua */
-            /* Kich thuoc o co duoc dieu khien boi bien CSS */
+            /* Kich thuoc o co dong */
             grid-auto-rows: var(--cell-size);
             grid-auto-columns: var(--cell-size);
-            transition: all 0.2s ease-out; /* Hieu ung zoom muot */
+            /* Transform origin o giua de zoom dep hon */
+            transform-origin: center center;
         }
 
         .o_co { 
             background-color: #1e293b; 
             display: flex; justify-content: center; align-items: center; 
-            cursor: pointer; user-select: none; font-weight: bold; position: relative; 
+            cursor: pointer; 
+            font-weight: bold; 
+            position: relative; 
             width: var(--cell-size);
             height: var(--cell-size);
             font-size: var(--font-size);
@@ -70,7 +92,6 @@
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
-        /* Highlight */
         .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
         .o_co.o_thang {
             background-color: #facc15 !important; 
@@ -81,13 +102,20 @@
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { color: #451a03 !important; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        /* --- MODAL & FOOTER --- */
+        /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
         .modal_content { background: #1e293b; padding: 2rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
         .qr_image { background: white; padding: 10px; border-radius: 4px; margin: 1rem 0; width: 200px; height: 200px; }
         .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
         #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #0f172a; border-top: 1px solid #1e293b; }
+        
+        /* Note ve thao tac */
+        .tutorial-hint {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px;
+            font-size: 0.75rem; color: #94a3b8; pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -101,11 +129,6 @@
         </div>
         
         <div class="bang_dieu_khien">
-            <div class="zoom-controls">
-                <span class="zoom-icon">🔍-</span>
-                <input type="range" id="zoom_slider" min="10" max="80" value="40" oninput="cap_nhat_zoom(this.value)">
-                <span class="zoom-icon">🔍+</span>
-            </div>
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại (3)</button>
             <button id="btn_choi_lai" onclick="xu_ly_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
             <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Kết nối...</button>
@@ -114,6 +137,7 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
+        <div class="tutorial-hint" id="hint_text">Kéo để di chuyển • Lăn chuột/2 ngón để Zoom</div>
     </div>
 
     <div id="ban_quyen">Bản quyền: Trần Hồng Dân. Email: tranhongdan@tranphudlk.edu.vn</div>
@@ -170,9 +194,13 @@
         let nuoc_di_cuoi = null;
         let so_lan_undo = { X: 3, O: 3 };
         
-        const PADDING = 1; // Them 1 o moi phia de thoang mat
+        // --- CAU HINH ---
+        const PADDING = 3; // LE FREE 3 HANG
+        let currentZoom = 40; // Pixel
 
         async function init() {
+            setup_drag_and_zoom(); // Kich hoat chuc nang dieu khien
+            
             try {
                 await signInAnonymously(auth);
                 user_id = auth.currentUser.uid;
@@ -193,6 +221,115 @@
             }
         }
 
+        // --- DRAG & ZOOM LOGIC (QUAN TRONG) ---
+        function setup_drag_and_zoom() {
+            const container = document.getElementById('khung_ban_co');
+            const hint = document.getElementById('hint_text');
+            
+            // 1. DRAG (Mouse & Touch)
+            let isDown = false;
+            let startX, startY, scrollLeft, scrollTop;
+
+            const startDrag = (e) => {
+                isDown = true;
+                container.style.cursor = 'grabbing';
+                hint.style.display = 'none'; // An huong dan khi bat dau tuong tac
+                
+                const pageX = e.pageX || e.touches[0].pageX;
+                const pageY = e.pageY || e.touches[0].pageY;
+                
+                startX = pageX - container.offsetLeft;
+                startY = pageY - container.offsetTop;
+                scrollLeft = container.scrollLeft;
+                scrollTop = container.scrollTop;
+            };
+
+            const endDrag = () => {
+                isDown = false;
+                container.style.cursor = 'grab';
+            };
+
+            const moveDrag = (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const pageX = e.pageX || e.touches[0].pageX;
+                const pageY = e.pageY || e.touches[0].pageY;
+                
+                const x = pageX - container.offsetLeft;
+                const y = pageY - container.offsetTop;
+                const walkX = (x - startX) * 1; // Toc do keo
+                const walkY = (y - startY) * 1;
+                
+                container.scrollLeft = scrollLeft - walkX;
+                container.scrollTop = scrollTop - walkY;
+            };
+
+            // Events Mouse
+            container.addEventListener('mousedown', startDrag);
+            container.addEventListener('mouseleave', endDrag);
+            container.addEventListener('mouseup', endDrag);
+            container.addEventListener('mousemove', moveDrag);
+
+            // Events Touch (1 ngon tay de keo)
+            container.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1) startDrag(e);
+            });
+            container.addEventListener('touchend', endDrag);
+            container.addEventListener('touchmove', (e) => {
+                if(e.touches.length === 1) moveDrag(e);
+            });
+
+            // 2. ZOOM (Wheel & Pinch)
+            
+            // Mouse Wheel
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = Math.sign(e.deltaY) * -5;
+                updateZoom(delta);
+            }, { passive: false });
+
+            // Pinch Zoom (Mobile)
+            let initialDistance = 0;
+            
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    initialDistance = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                }
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    e.preventDefault(); // Ngan zoom toan trang
+                    const currentDistance = Math.hypot(
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
+                    );
+                    
+                    const delta = (currentDistance - initialDistance) * 0.1;
+                    if (Math.abs(delta) > 1) { // Giam do nhay
+                         updateZoom(delta);
+                         initialDistance = currentDistance; // Reset de zoom muot hon
+                    }
+                }
+            }, { passive: false });
+        }
+
+        function updateZoom(delta) {
+            let newZoom = currentZoom + delta;
+            if (newZoom < 15) newZoom = 15; // Min zoom
+            if (newZoom > 100) newZoom = 100; // Max zoom
+            
+            currentZoom = newZoom;
+            
+            const root = document.documentElement;
+            root.style.setProperty('--cell-size', `${currentZoom}px`);
+            root.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 10)}px`);
+        }
+
+        // --- CAC FUNCTION GAME GIU NGUYEN ---
         window.tao_phong_moi = async function() {
             if (!user_id) return;
             document.getElementById('btn_tao_phong').textContent = "Đang tạo...";
@@ -253,11 +390,13 @@
 
                 cap_nhat_ui();
                 ve_ban_co();
-                auto_fit_board(); // TU DONG ZOOM VUA MAN HINH
             });
         }
 
         async function gui_nuoc_di(h, c) {
+            // Drag check: Neu dang drag thi khong tinh la click
+            // (Duoc xu ly boi CSS pointer-events hoac check thoi gian click nhung o day ta dung onlick don gian)
+            
             const id = `${h},${c}`;
             if (!room_id) { 
                 cac_nuoc_di[id] = luot_choi;
@@ -266,7 +405,7 @@
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
                 if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
                 else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
-                ve_ban_co(); cap_nhat_ui(); auto_fit_board(); return;
+                ve_ban_co(); cap_nhat_ui(); return;
             }
 
             if (luot_choi !== my_role) return;
@@ -286,48 +425,8 @@
                 nuoc_di_cuoi: id,
                 undo_request: null
             });
-            // auto_fit_board duoc goi boi onSnapshot
         }
 
-        // --- ZOOM & FIT LOGIC (MOI) ---
-        window.cap_nhat_zoom = function(val) {
-            const root = document.documentElement;
-            root.style.setProperty('--cell-size', `${val}px`);
-            root.style.setProperty('--font-size', `${Math.max(val * 0.5, 10)}px`);
-        }
-
-        function auto_fit_board() {
-            // Tinh toan kich thuoc toan bo vung co quan co
-            const gioi_han = lay_gioi_han();
-            const cols = gioi_han.max_c - gioi_han.min_c + 1;
-            const rows = gioi_han.max_h - gioi_han.min_h + 1;
-
-            const container = document.getElementById('khung_ban_co');
-            const cw = container.clientWidth - 20; // Tru padding
-            const ch = container.clientHeight - 20;
-
-            // Tinh size o co de vua khit man hinh
-            let fitSize = Math.min(cw / cols, ch / rows);
-            
-            // Gioi han: Neu be qua thi giu o muc toi thieu de nhin thay
-            // Neu lon qua thi gioi han lai
-            if (fitSize > 60) fitSize = 60;
-            
-            // Cap nhat Slider va CSS
-            const slider = document.getElementById('zoom_slider');
-            slider.value = fitSize;
-            cap_nhat_zoom(fitSize);
-
-            // Cuon ve trung tam (neu bi tran)
-            setTimeout(() => {
-                const luoi = document.getElementById('luoi_co');
-                // Scroll center logic simple
-                // container.scrollTop = (luoi.clientHeight - ch) / 2;
-                // container.scrollLeft = (luoi.clientWidth - cw) / 2;
-            }, 50);
-        }
-
-        // --- CAC HAM KHAC GIU NGUYEN ---
         window.gui_yeu_cau_undo = async () => {
             if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return;
             if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; }
@@ -368,7 +467,7 @@
             } else {
                 cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = next_start;
                 nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; so_lan_undo = {X:3, O:3};
-                cap_nhat_ui(); ve_ban_co(); auto_fit_board();
+                cap_nhat_ui(); ve_ban_co();
             }
         }
 
@@ -389,10 +488,13 @@
              return null;
         }
 
-        function lay_gioi_han() {
+        // --- RENDER VOI PADDING 3 ---
+        function ve_ban_co() {
+            const luoi = document.getElementById('luoi_co');
             const keys = Object.keys(cac_nuoc_di);
+            
+            // Xac dinh gioi han
             let min_h = 0, max_h = 0, min_c = 0, max_c = 0;
-
             if (keys.length > 0) {
                 min_h = Infinity; max_h = -Infinity; min_c = Infinity; max_c = -Infinity;
                 keys.forEach(k => {
@@ -401,31 +503,25 @@
                     if(c<min_c) min_c=c; if(c>max_c) max_c=c;
                 });
             }
-
-            // Mac dinh hien thi 15x15 neu chua danh gi
-            if (keys.length === 0) {
-                return { min_h: -7, max_h: 7, min_c: -7, max_c: 7 };
-            }
-
-            return {
-                min_h: min_h - PADDING, max_h: max_h + PADDING,
-                min_c: min_c - PADDING, max_c: max_c + PADDING
-            };
-        }
-
-        function ve_ban_co() {
-            const luoi = document.getElementById('luoi_co');
-            const gioi_han = lay_gioi_han();
             
-            const rows = gioi_han.max_h - gioi_han.min_h + 1;
-            const cols = gioi_han.max_c - gioi_han.min_c + 1;
+            // Mac dinh neu trong thi ve 15x15
+            if (keys.length === 0) { min_h = -7; max_h = 7; min_c = -7; max_c = 7; }
+
+            // Ap dung Padding 3
+            const start_h = min_h - PADDING;
+            const end_h = max_h + PADDING;
+            const start_c = min_c - PADDING;
+            const end_c = max_c + PADDING;
+
+            const rows = end_h - start_h + 1;
+            const cols = end_c - start_c + 1;
 
             luoi.style.gridTemplateColumns = `repeat(${cols}, auto)`;
             luoi.style.gridTemplateRows = `repeat(${rows}, auto)`;
             luoi.innerHTML = '';
             
-            for (let h=gioi_han.min_h; h<=gioi_han.max_h; h++) {
-                for (let c=gioi_han.min_c; c<=gioi_han.max_c; c++) {
+            for (let h=start_h; h<=end_h; h++) {
+                for (let c=start_c; c<=end_c; c++) {
                     const id = `${h},${c}`;
                     const div = document.createElement('div');
                     div.className = 'o_co';
@@ -469,7 +565,7 @@
             }
         }
 
-        window.addEventListener('resize', auto_fit_board);
+        window.addEventListener('resize', ve_ban_co);
         init();
     </script>
 </body>
