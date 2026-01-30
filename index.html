@@ -1,3 +1,12 @@
+Để thêm chức năng highlight (làm nổi bật) ô vừa mới đánh, chúng ta cần thực hiện 3 thay đổi chính:
+
+1. **CSS**: Thêm class `.o_vua_danh` để tạo hiệu ứng viền sáng (hoặc đổi màu nền) cho ô mới nhất.
+2. **Logic (JavaScript)**: Theo dõi biến `nuoc_di_cuoi` (chứa tọa độ `h,c`).
+3. **Firebase**: Cập nhật `nuoc_di_cuoi` lên server để cả 2 người chơi đều thấy ô đó sáng lên cùng lúc.
+
+Dưới đây là toàn bộ mã nguồn đã được cập nhật chức năng này.
+
+```html
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -98,14 +107,22 @@
             user-select: none;
             font-weight: bold;
             transition: background-color 0.2s;
+            position: relative; /* De hien thi highlight */
         }
         .o_co:hover { background-color: #334155; }
         .quan_x { color: #ef4444; }
         .quan_o { color: #3b82f6; }
         
+        /* CSS High Light cho nuoc di moi nhat */
+        .o_vua_danh {
+            background-color: #334155 !important;
+            box-shadow: inset 0 0 0 2px #22d3ee; /* Mau Cyan sang */
+        }
+        
+        /* O chien thang (uu tien cao hon o vua danh) */
         .o_thang {
             background-color: #422006 !important;
-            box-shadow: inset 0 0 0 2px #facc15;
+            box-shadow: inset 0 0 0 2px #facc15 !important; /* Mau vang */
         }
         .o_thang .quan_x, .o_thang .quan_o { color: #facc15; }
 
@@ -151,6 +168,17 @@
             font-style: italic;
         }
 
+        /* --- FOOTER BAN QUYEN --- */
+        #ban_quyen {
+            flex: 0 0 auto;
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            background-color: #0f172a;
+            border-top: 1px solid #1e293b;
+        }
+
     </style>
 </head>
 <body>
@@ -172,6 +200,10 @@
         <div id="loading" style="position: absolute; display: none;">Đang tải...</div>
     </div>
 
+    <div id="ban_quyen">
+        Trần Hồng Dân - tranhongdan@tranphudlk.edu.vn
+    </div>
+
     <div id="modal_qr">
         <div class="modal_content">
             <h2 style="margin-top:0">Quét mã để chơi</h2>
@@ -188,22 +220,14 @@
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- CAU HINH FIREBASE ---
-        // Lay config tu moi truong Preview hoac object rong neu chay local
         const firebaseConfig = {
-
-  apiKey: "AIzaSyA2Q9kQMtdXu9D22yaNH618EbcIs2cNVGU",
-
-  authDomain: "xogame-27755.firebaseapp.com",
-
-  projectId: "xogame-27755",
-
-  storageBucket: "xogame-27755.firebasestorage.app",
-
-  messagingSenderId: "407277278988",
-
-  appId: "1:407277278988:web:62872131b964dbfe289b29"
-
-};
+            apiKey: "AIzaSyA2Q9kQMtdXu9D22yaNH618EbcIs2cNVGU",
+            authDomain: "xogame-27755.firebaseapp.com",
+            projectId: "xogame-27755",
+            storageBucket: "xogame-27755.firebasestorage.app",
+            messagingSenderId: "407277278988",
+            appId: "1:407277278988:web:62872131b964dbfe289b29"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -214,12 +238,15 @@
         let user_id = null;
         let room_id = null;
         let is_host = false;
-        let my_role = 'X'; // X hoac O (Host luon la X)
+        let my_role = 'X'; 
         
         let cac_nuoc_di = {}; 
         let luot_choi = 'X';
         let nguoi_thang = null;
         let hang_thang = [];
+        
+        // Bien moi: luu id cua nuoc di cuoi cung de highlight (dang "h,c")
+        let nuoc_di_cuoi = null; 
         
         const SO_QUAN_THANG = 5;
         const PADDING = 3;
@@ -227,95 +254,73 @@
         // --- KHOI TAO APP ---
         async function init() {
             try {
-                // UU TIEN 1: Dang nhap bang token he thong (neu co)
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    // UU TIEN 2: Dang nhap an danh (Anonymous)
                     await signInAnonymously(auth);
                 }
-                
                 user_id = auth.currentUser.uid;
-                console.log("Logged in as:", user_id);
                 
-                // Kich hoat nut tao phong
                 const btn = document.getElementById('btn_tao_phong');
                 btn.textContent = "Tạo Phòng Online";
                 btn.disabled = false;
-
             } catch (error) {
                 console.error("Auth error:", error);
                 document.getElementById('btn_tao_phong').textContent = "Lỗi Kết Nối";
-                // Khong alert loi de tranh phien neu choi offline
                 return;
             }
 
-            // 2. Kiem tra URL xem co phai dang join phong khong (qua query param)
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
 
             if (roomParam) {
-                // Truong hop: JOIN PHONG
                 room_id = roomParam;
                 is_host = false;
-                my_role = 'O'; // Nguoi join la O
-                
-                // An nut tao phong, hien thi trang thai
+                my_role = 'O'; 
                 document.getElementById('btn_tao_phong').style.display = 'none';
                 document.querySelector('h1').textContent = "Phòng: " + room_id.substring(0,4);
-                
                 lang_nghe_phong(room_id);
             } else {
-                // Truong hop: CHOI OFFLINE MAC DINH
                 ve_ban_co();
             }
         }
 
         // --- CHUC NANG ONLINE ---
-        
-        // Ham duoc goi tu HTML
         window.tao_phong_moi = async function() {
             if (!user_id) {
                 alert("Đang kết nối máy chủ, vui lòng đợi giây lát...");
                 return;
             }
-            
             const btn = document.getElementById('btn_tao_phong');
             btn.disabled = true;
             btn.textContent = "Đang tạo...";
 
             try {
-                // Tao ID phong ngau nhien (6 ky tu)
                 room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
                 is_host = true;
                 my_role = 'X';
 
-                // Du lieu khoi tao
                 const gameData = {
                     cac_nuoc_di: {},
                     luot_choi: 'X',
                     nguoi_thang: null,
                     nguoi_tao: user_id,
-                    nguoi_tham_gia: null, // Cho nguoi thu 2
+                    nguoi_tham_gia: null,
+                    nuoc_di_cuoi: null, // Khoi tao field nay
                     ngay_tao: Date.now()
                 };
 
-                // Luu len Firestore
                 const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
                 await setDoc(gameRef, gameData);
 
-                // Hien thi QR Code
                 hien_thi_qr(room_id);
-
-                // Bat dau lang nghe thay doi
                 lang_nghe_phong(room_id);
                 
-                // Cap nhat UI
                 btn.style.display = 'none';
                 document.querySelector('h1').textContent = "Phòng chủ: " + room_id;
             } catch (e) {
                 console.error("Loi tao phong:", e);
-                alert("Không thể tạo phòng. (Có thể do lỗi cấu hình Firebase). Vui lòng thử lại.");
+                alert("Lỗi tạo phòng.");
                 btn.disabled = false;
                 btn.textContent = "Tạo Phòng Online";
                 room_id = null;
@@ -324,9 +329,7 @@
 
         function hien_thi_qr(id) {
             const url = window.location.href.split('?')[0] + '?room=' + id;
-            // Su dung API tao QR mien phi
             const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-            
             document.getElementById('anh_qr').src = qrUrl;
             document.getElementById('link_phong').textContent = url;
             document.getElementById('modal_qr').style.display = 'flex';
@@ -345,30 +348,27 @@
         function lang_nghe_phong(id) {
             const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', id);
             
-            // Lang nghe real-time updates tu Firestore
             onSnapshot(gameRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // Dong bo du lieu ve Client
                     cac_nuoc_di = data.cac_nuoc_di || {};
                     luot_choi = data.luot_choi;
                     nguoi_thang = data.nguoi_thang;
+                    // Cap nhat nuoc di cuoi cung tu server
+                    nuoc_di_cuoi = data.nuoc_di_cuoi || null; 
                     
-                    // Thong bao khi nguoi choi thu 2 vao
                     if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                         dong_modal();
                         alert("Người chơi thứ 2 đã tham gia!");
                     }
                     
-                    // Neu toi la O (join) va chua duoc ghi nhan, update len DB
                     if (!is_host && !data.nguoi_tham_gia && user_id) {
                         updateDoc(gameRef, { nguoi_tham_gia: user_id });
                     }
 
-                    // Tinh toan lai duong thang thang (de hien thi mau vang)
                     if (nguoi_thang) {
-                         tim_hang_thang_khi_sync();
+                          tim_hang_thang_khi_sync();
                     } else {
                         hang_thang = [];
                     }
@@ -376,7 +376,7 @@
                     cap_nhat_ui_thong_tin();
                     ve_ban_co();
                 } else {
-                    if (!is_host) alert("Phòng không tồn tại hoặc đã bị xóa.");
+                    if (!is_host) alert("Phòng không tồn tại.");
                 }
             }, (error) => {
                  console.error("Loi dong bo:", error);
@@ -384,71 +384,69 @@
         }
 
         async function gui_nuoc_di(h, c) {
+            const id = `${h},${c}`;
+
             if (!room_id) {
-                // Che do Offline (choi mot minh)
-                const id = `${h},${c}`;
+                // Che do Offline
                 cac_nuoc_di[id] = luot_choi;
+                nuoc_di_cuoi = id; // Luu local
+                
                 kiem_tra_ket_thuc(h, c, luot_choi);
                 if (!nguoi_thang) luot_choi = (luot_choi === 'X' ? 'O' : 'X');
+                
                 ve_ban_co();
                 cap_nhat_ui_thong_tin();
                 return;
             }
 
             // Che do Online
-            if (luot_choi !== my_role) {
-                console.log("Chua den luot cua ban");
-                return;
-            }
+            if (luot_choi !== my_role) return;
 
-            const id = `${h},${c}`;
             const nuoc_moi = { ...cac_nuoc_di, [id]: my_role };
-            
-            // Tinh toan logic game
             const thang = tinh_toan_thang(h, c, my_role, nuoc_moi);
             const winner = thang ? my_role : null;
             const next_turn = winner ? my_role : (my_role === 'X' ? 'O' : 'X');
 
             const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
             try {
-                // Update 1 phan document (tiet kiem bang thong)
+                // Update bao gom ca nuoc_di_cuoi
                 await updateDoc(gameRef, {
                     [`cac_nuoc_di.${id}`]: my_role, 
                     luot_choi: next_turn,
-                    nguoi_thang: winner
+                    nguoi_thang: winner,
+                    nuoc_di_cuoi: id 
                 });
             } catch (e) {
-                 // Fallback: update toan bo neu cau truc phuc tap
                  await updateDoc(gameRef, {
                     cac_nuoc_di: nuoc_moi,
                     luot_choi: next_turn,
-                    nguoi_thang: winner
+                    nguoi_thang: winner,
+                    nuoc_di_cuoi: id
                 });
             }
         }
 
         window.xu_ly_choi_lai = async function() {
             if (room_id) {
-                // Reset tren server
                 const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'games', room_id);
                 await updateDoc(gameRef, {
                     cac_nuoc_di: {},
                     luot_choi: 'X',
-                    nguoi_thang: null
+                    nguoi_thang: null,
+                    nuoc_di_cuoi: null // Reset highlight
                 });
             } else {
-                // Reset local
                 cac_nuoc_di = {};
                 luot_choi = 'X';
                 nguoi_thang = null;
                 hang_thang = [];
+                nuoc_di_cuoi = null; // Reset highlight
                 cap_nhat_ui_thong_tin();
                 ve_ban_co();
             }
         }
 
         // --- LOGIC GAME CLIENT ---
-        
         function tinh_toan_thang(h, c, player, board_state) {
              const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
              for (let dir of directions) {
@@ -456,7 +454,6 @@
                 let count = 1;
                 let line = [`${h},${c}`];
 
-                // Duyet ve phia duong (+)
                 let i = 1;
                 while (true) {
                     const k = `${h + dh * i},${c + dc * i}`;
@@ -464,7 +461,6 @@
                     else break;
                 }
 
-                // Duyet ve phia am (-)
                 let j = 1;
                 while (true) {
                     const k = `${h - dh * j},${c - dc * j}`;
@@ -485,7 +481,6 @@
         }
 
         function tim_hang_thang_khi_sync() {
-            // Quet de tim lai hang thang sau khi tai du lieu ve
             const keys = Object.keys(cac_nuoc_di);
             for (let key of keys) {
                 if (cac_nuoc_di[key] === nguoi_thang) {
@@ -499,7 +494,7 @@
             }
         }
 
-        // --- RENDER & BOUNDARIES (AUTO-SCALE) ---
+        // --- RENDER ---
         function lay_gioi_han() {
             const cac_khoa = Object.keys(cac_nuoc_di);
             if (cac_khoa.length === 0) return { min_h: -PADDING, max_h: PADDING, min_c: -PADDING, max_c: PADDING };
@@ -527,9 +522,8 @@
             const rong = khung.clientWidth - 20;
             const cao = khung.clientHeight - 20;
             
-            // Tinh toan kich thuoc o de vua man hinh
             let size = Math.min(rong / so_cot, cao / so_hang);
-            if (size > 60) size = 60; // Max size
+            if (size > 60) size = 60; 
             
             luoi.style.gridTemplateColumns = `repeat(${so_cot}, ${size}px)`;
             luoi.style.gridTemplateRows = `repeat(${so_hang}, ${size}px)`;
@@ -549,10 +543,15 @@
                         o.textContent = q;
                         o.classList.add(q === 'X' ? 'quan_x' : 'quan_o');
                     }
+                    
+                    // Them class highlight neu la o vua danh
+                    if (id === nuoc_di_cuoi) {
+                        o.classList.add('o_vua_danh');
+                    }
+
                     if (hang_thang.includes(id)) o.classList.add('o_thang');
 
                     o.onclick = () => xu_ly_click_o(h, c);
-                    
                     luoi.appendChild(o);
                 }
             }
@@ -575,7 +574,6 @@
 
             if (nguoi_thang) {
                 div.innerHTML = `<span class="vang" style="padding:4px 8px; font-weight:bold; border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
-                // Chi Host moi duoc restart game
                 if (is_host || !room_id) btn_choi_lai.style.display = 'block';
             } else {
                 div.innerHTML = `Lượt: <span class="luot_choi_hien_thi ${luot_choi === 'X' ? 'do' : 'xanh'}">${luot_choi}</span>${role_text}`;
@@ -589,3 +587,5 @@
     </script>
 </body>
 </html>
+
+```
