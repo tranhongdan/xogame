@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Fixed Lag</title>
+    <title>XO Online - Mobile Fixed</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -20,31 +20,63 @@
             background-color: #f1f5f9;
             color: var(--text-color); 
             font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; display: flex; flex-direction: column; 
+            /* Fix loi chieu cao tren mobile */
+            height: 100vh; 
+            height: 100dvh; 
+            display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
         }
 
-        /* --- HEADER UI --- */
+        /* --- HEADER UI (Mobile Optimized) --- */
         #thong_tin { 
-            flex: 0 0 auto; padding: 0.75rem 1rem; 
+            /* QUAN TRONG: Khong cho phep co gian chieu cao header */
+            flex: 0 0 auto; 
+            padding: 0.5rem; 
             background-color: #1e293b; color: #f1f5f9;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-            z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; 
+            z-index: 20; 
+            
+            /* Layout linh hoat cho mobile */
+            display: flex; 
+            flex-wrap: wrap; /* Cho phep xuong dong neu chat */
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 8px; 
         }
-        .left-info { display: flex; flex-direction: column; gap: 4px; }
-        h1 { margin: 0; font-size: 1.1rem; font-weight: bold; color: #facc15; }
-        .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; }
+
+        .left-info { 
+            display: flex; align-items: center; gap: 10px; 
+            font-size: 0.9rem;
+        }
         
-        .luot_choi_hien_thi { padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; }
+        h1 { margin: 0; font-size: 1rem; font-weight: bold; color: #facc15; white-space: nowrap; }
+        
+        .bang_dieu_khien { 
+            display: flex; gap: 5px; align-items: center; 
+            /* Cho phep cuon ngang neu qua nhieu nut tren man hinh sieu nho */
+            overflow-x: auto; 
+            max-width: 100%;
+            padding-bottom: 2px; /* Tranh cat shadow */
+        }
+        
+        /* Custom scrollbar an di cho dep */
+        .bang_dieu_khien::-webkit-scrollbar { display: none; }
+
+        .luot_choi_hien_thi { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; white-space: nowrap; }
         .xanh { background-color: #3b82f6; color: white; }
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
-        .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.8rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; }
-        .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+        .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.7rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; white-space: nowrap; }
+        .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; }
         
         @keyframes pulse { 50% { opacity: .5; } }
 
-        button { background-color: #334155; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.85rem; white-space: nowrap; }
+        /* Button style gon gang hon */
+        button { 
+            background-color: #334155; color: white; border: none; 
+            padding: 6px 10px; border-radius: 4px; cursor: pointer; 
+            font-weight: 500; font-size: 0.8rem; white-space: nowrap; 
+        }
         button:hover { background-color: #475569; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
@@ -52,13 +84,19 @@
         .btn-danger { background-color: #dc2626; }
         .btn-success { background-color: #16a34a; }
 
+        .eye-count { 
+            color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; 
+            background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;
+        }
+
         /* --- KHUNG BAN CO --- */
         #khung_ban_co { 
-            flex: 1; 
+            flex: 1; /* Chiems toan bo khong gian con lai */
             position: relative; 
             overflow: hidden; 
             background-color: #f8fafc; 
             cursor: grab; touch-action: none; 
+            /* Pattern giay */
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
             background-size: 20px 20px;
         }
@@ -107,16 +145,16 @@
         /* --- CHAT UI --- */
         #nut_mo_chat {
             position: fixed; bottom: 80px; right: 20px;
-            width: 50px; height: 50px; border-radius: 50%;
+            width: 45px; height: 45px; border-radius: 50%;
             background-color: #2563eb; color: white;
             display: none; justify-content: center; align-items: center;
-            font-size: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             cursor: pointer; z-index: 30; border: none;
         }
         #thong_bao_tin_moi {
-            position: absolute; top: -5px; right: -5px;
+            position: absolute; top: -2px; right: -2px;
             background: #ef4444; color: white; border-radius: 50%;
-            width: 20px; height: 20px; font-size: 12px;
+            width: 18px; height: 18px; font-size: 10px;
             display: none; justify-content: center; align-items: center;
         }
 
@@ -157,20 +195,19 @@
 
         /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
-        .modal_content { background: #1e293b; color: white; padding: 2rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
-        .qr_image { background: white; padding: 10px; border-radius: 4px; margin: 1rem 0; width: 200px; height: 200px; }
-        .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; }
+        .modal_content { background: #1e293b; color: white; padding: 1.5rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
+        .qr_image { background: white; padding: 8px; border-radius: 4px; margin: 1rem 0; width: 180px; height: 180px; }
+        .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; font-size: 0.8rem; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
 
         /* --- LOBBY TABLE --- */
-        .lobby-list { max-height: 300px; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #334155; border-radius: 4px; }
+        .lobby-list { max-height: 50vh; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #334155; border-radius: 4px; }
         .room-item { padding: 10px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; background: #0f172a; }
         .room-item:last-child { border-bottom: none; }
         .room-item:hover { background: #334155; cursor: pointer; }
         .room-status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
         .status-wait { background: #16a34a; color: white; }
         .status-full { background: #ef4444; color: white; }
-        .eye-count { color: #94a3b8; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
         
         #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; }
     </style>
@@ -186,14 +223,14 @@
         </div>
         
         <div class="bang_dieu_khien">
-            <span id="mat_xem" class="eye-count" style="margin-right:10px; display:none;">👁️ 0</span>
+            <span id="mat_xem" class="eye-count" style="display:none;">👁️ 0</span>
             
-            <button id="btn_lobby" onclick="mo_lobby()" class="btn-success">DS Phòng</button>
+            <button id="btn_lobby" onclick="mo_lobby()" class="btn-success">Danh Sách</button>
             <button id="btn_roi_phong" onclick="roi_phong()" class="btn-danger" style="display:none;">Thoát</button>
             
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại</button>
             <button id="btn_choi_lai" onclick="kich_hoat_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
-            <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Kết nối...</button>
+            <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Tạo Phòng</button>
         </div>
     </div>
 
@@ -244,7 +281,7 @@
     <div id="modal_lobby" class="modal_overlay">
         <div class="modal_content" style="width: 500px;">
             <h2 style="margin-top:0; color:#facc15">Danh Sách Phòng</h2>
-            <p style="font-size:0.9rem; color:#94a3b8;">Ẩn phòng sau 5 phút không hoạt động</p>
+            <p style="font-size:0.8rem; color:#94a3b8;">Ẩn phòng sau 5 phút không hoạt động</p>
             <div id="danh_sach_phong" class="lobby-list">
                 <div style="padding:10px; color:#64748b">Đang tải...</div>
             </div>
@@ -322,6 +359,7 @@
             try {
                 await signInAnonymously(auth);
                 user_id = auth.currentUser.uid;
+                
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomParam = urlParams.get('room');
                 if (roomParam) {
@@ -329,7 +367,7 @@
                     is_host = false; my_role = 'O'; 
                     lang_nghe_phong(room_id);
                 } else {
-                    document.getElementById('btn_tao_phong').textContent = "Tạo Phòng Online"; 
+                    document.getElementById('btn_tao_phong').textContent = "Tạo Phòng"; 
                     document.getElementById('btn_tao_phong').disabled = false;
                 }
             } catch (error) { 
@@ -367,7 +405,7 @@
                 if (count === 0) listDiv.innerHTML = '<div style="padding:10px;">Không có phòng online.</div>';
             } catch (e) {
                 console.error(e);
-                listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Chưa có dữ liệu phòng. Hãy tạo mới!</div>';
+                listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Chưa có dữ liệu.</div>';
             }
         }
 
@@ -483,7 +521,7 @@
                 if (!docSnap.exists()) { alert("Phòng không tồn tại!"); roi_phong(); return; }
                 const data = docSnap.data();
                 
-                // --- XAC DINH ROLE CHAT CHE ---
+                // --- XAC DINH ROLE ---
                 if (data.nguoi_tao === user_id) {
                     is_host = true; my_role = 'X';
                 } else if (data.nguoi_tham_gia === user_id) {
@@ -495,7 +533,6 @@
                     is_host = false; my_role = 'SPECTATOR';
                 }
 
-                // CAP NHAT DATA TU SERVER -> CLIENT
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
@@ -505,11 +542,6 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
-                // VE LAI GIAO DIEN
-                cap_nhat_ui();
-                ve_ban_co();
-
-                // CHAT & AUDIO
                 const chat_cu = lich_su_chat.length;
                 lich_su_chat = data.lich_su_chat || [];
                 render_chat();
@@ -526,6 +558,7 @@
                 }
                 
                 if (data.undo_request) xu_ly_undo_remote(data.undo_request, id);
+                cap_nhat_ui(); ve_ban_co();
             });
         }
         
@@ -538,22 +571,25 @@
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
-            // Khong cho phep danh neu chua den luot
+            if (!room_id) { 
+                cac_nuoc_di[id] = luot_choi;
+                lich_su_nuoc_di.push({id, player: luot_choi});
+                nuoc_di_cuoi = id;
+                const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
+                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
+                else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
+                ve_ban_co(); cap_nhat_ui(); return;
+            }
             if (luot_choi !== my_role) return;
-            
-            // CAP NHAT CLIENT TRUOC (OPTIMISTIC UI)
-            cac_nuoc_di[id] = my_role; 
-            nuoc_di_cuoi = id;
-            const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
-            ve_ban_co(); // Ve ngay lap tuc
-            
-            // GUI LEN SERVER
+            cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
+            const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
+            ve_ban_co(); 
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
-                luot_choi: thang ? my_role : (my_role === 'X' ? 'O' : 'X'),
-                nguoi_thang: thang ? my_role : null,
-                hang_thang: thang || [],
+                luot_choi: thang_cuc_bo ? my_role : (my_role === 'X' ? 'O' : 'X'),
+                nguoi_thang: thang_cuc_bo ? my_role : null,
+                hang_thang: thang_cuc_bo || [],
                 nuoc_di_cuoi: id,
                 undo_request: null,
                 last_active: Date.now() 
