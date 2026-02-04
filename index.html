@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Final Perfect</title>
+    <title>XO Online - Fixed Grid</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -20,7 +20,8 @@
             background-color: #f1f5f9;
             color: var(--text-color); 
             font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; display: flex; flex-direction: column; 
+            height: 100vh; height: 100dvh; 
+            display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
         }
 
@@ -61,23 +62,51 @@
             flex: 1; position: relative; overflow: hidden; 
             background-color: #f8fafc; 
             cursor: grab; touch-action: none; 
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
+            /* BO HINH NEN CHAM DE TRANH LECH LAC */
         }
         .cursor-grabbing { cursor: grabbing !important; }
 
         #luoi_co { 
             position: absolute; display: grid; 
-            background-color: var(--grid-line); gap: 1px; border: 1px solid var(--grid-line); 
+            background-color: transparent; 
+            /* QUAN TRONG: Gap = 0 de tinh toan chinh xac */
+            gap: 0; 
+            /* Border phia tren va trai cua toan bo luoi */
+            border-top: 1px solid var(--grid-line);
+            border-left: 1px solid var(--grid-line);
+            
             grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
             transition: left 0.1s, top 0.1s;
         }
 
-        .o_co { background-color: var(--paper-bg); display: flex; justify-content: center; align-items: center; font-weight: bold; position: relative; width: var(--cell-size); height: var(--cell-size); font-size: var(--font-size); pointer-events: none; }
+        .o_co { 
+            background-color: var(--paper-bg); 
+            display: flex; justify-content: center; align-items: center; 
+            font-weight: bold; position: relative; 
+            
+            /* Box sizing border-box de kich thuoc 40px da bao gom ca border */
+            width: var(--cell-size); 
+            height: var(--cell-size); 
+            box-sizing: border-box;
+            
+            font-size: var(--font-size); 
+            pointer-events: none; 
+            
+            /* Border phai va duoi cua tung o */
+            border-right: 1px solid var(--grid-line);
+            border-bottom: 1px solid var(--grid-line);
+        }
+        
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
-        .o_vua_danh::after { content: ''; position: absolute; inset: 2px; border: 2px solid #38bdf8; border-radius: 4px; background-color: rgba(56, 189, 248, 0.1); }
+        
+        /* Highlight nuoc vua danh */
+        .o_vua_danh::after { 
+            content: ''; position: absolute; inset: 0; 
+            background-color: rgba(56, 189, 248, 0.2); 
+        }
+        
         .o_co.o_thang { z-index: 100; }
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
@@ -85,12 +114,12 @@
         /* --- HIGHLIGHTER (CON TRO ACTIVE) --- */
         #con_tro_active {
             position: absolute;
-            background-color: rgba(14, 165, 233, 0.2); /* Mau xanh nhat trong suot */
+            background-color: rgba(14, 165, 233, 0.3); /* Xanh nhat */
             border: 2px solid #0ea5e9;
+            box-sizing: border-box; /* Quan trong de khop voi o co */
             z-index: 5;
-            pointer-events: none; /* Click xuyen qua */
+            pointer-events: none;
             display: none;
-            box-sizing: border-box;
         }
 
         /* --- CHAT & UI --- */
@@ -219,7 +248,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -230,7 +258,6 @@
         document.body.addEventListener('touchstart', unlock_audio, { once: true });
         function playSound(type) { if (!audioEnabled) return; try { if (type === 'join') { sndJoin.currentTime=0; sndJoin.play().catch(e=>{}); } if (type === 'chat') { sndChat.currentTime=0; sndChat.play().catch(e=>{}); } } catch(e) {} }
 
-        // VARS
         let user_id = null, room_id = null, is_host = false, my_role = 'X', unsubscribe = null;
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
@@ -288,7 +315,7 @@
                 isDragging = true; didMove = false; container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
-                highlight.style.display = 'none'; // An highlight khi drag
+                highlight.style.display = 'none';
             };
 
             const onPointerMove = (e) => {
@@ -305,15 +332,11 @@
                     update_view_transform();
                     e.preventDefault();
                 } else {
-                    // --- HIGHLIGHTER LOGIC ---
+                    // --- HIGHLIGHTER CALCULATION ---
                     const rect = container.getBoundingClientRect();
-                    const relX = pageX - rect.left;
-                    const relY = pageY - rect.top;
+                    const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
+                    const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
                     
-                    const c = Math.floor((relX - viewOffsetX) / currentZoom);
-                    const h = Math.floor((relY - viewOffsetY) / currentZoom);
-                    
-                    // Cap nhat vi tri o active
                     const px = viewOffsetX + c * currentZoom;
                     const py = viewOffsetY + h * currentZoom;
                     
@@ -323,7 +346,6 @@
                     highlight.style.top = `${py}px`;
                     highlight.style.display = 'block';
 
-                    // Mouse Cursor Icon
                     if (!cac_nuoc_di[`${h},${c}`]) container.style.cursor = 'pointer'; 
                     else container.style.cursor = 'grab';
                 }
@@ -331,9 +353,7 @@
 
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
-                // Hien lai highlight sau khi drag xong
                 highlight.style.display = 'block';
-                
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
                     let clientX, clientY;
@@ -345,9 +365,7 @@
                 }
             };
             
-            // An highlight khi ra khoi ban co
             container.addEventListener('mouseleave', () => { highlight.style.display = 'none'; });
-
             container.addEventListener('mousedown', onPointerDown); window.addEventListener('mousemove', onPointerMove); window.addEventListener('mouseup', onPointerUp);
             container.addEventListener('touchstart', onPointerDown, { passive: false }); container.addEventListener('touchmove', onPointerMove, { passive: false }); container.addEventListener('touchend', onPointerUp);
             container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
@@ -366,16 +384,12 @@
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
             const highlight = document.getElementById('con_tro_active');
-            
             const minH = parseInt(luoi.dataset.minH || -1);
             const minC = parseInt(luoi.dataset.minC || -1);
             luoi.style.left = `${viewOffsetX + minC * currentZoom}px`;
             luoi.style.top = `${viewOffsetY + minH * currentZoom}px`;
-            
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
-            
-            // An highlight khi zoom/pan de tranh giat
             highlight.style.display = 'none';
         }
 
