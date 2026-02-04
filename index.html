@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Active Filter</title>
+    <title>Co Caro Vo Tan - Fixed Interaction</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -310,7 +310,7 @@
         let viewOffsetX = 0; 
         let viewOffsetY = 0;
         const PADDING = 3; 
-        const TIMEOUT_MS = 5 * 60 * 1000; // 5 phut
+        const TIMEOUT_MS = 5 * 60 * 1000; 
 
         async function init() {
             const container = document.getElementById('khung_ban_co');
@@ -345,8 +345,6 @@
             listDiv.innerHTML = '<div style="padding:10px; color:#64748b">Đang tải danh sách...</div>';
 
             try {
-                // Su dung orderBy last_active de uu tien phong moi hoat dong
-                // Lay nhieu hon 20 phong de du phong khi filter
                 const q = query(collection(db, "games"), orderBy("last_active", "desc"), limit(50));
                 
                 const querySnapshot = await getDocs(q);
@@ -359,7 +357,6 @@
                     const data = doc.data();
                     const id = doc.id;
                     
-                    // Filter: Neu phong qua cu (5 phut khong hoat dong) -> Bo qua
                     const lastTime = data.last_active || data.ngay_tao;
                     if (now - lastTime > TIMEOUT_MS) return;
 
@@ -387,7 +384,6 @@
                 }
             } catch (e) {
                 console.error(e);
-                // Fallback neu user chua co index last_active
                 listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Lỗi tải hoặc chưa index. Thử tạo phòng mới để hệ thống ghi nhận.</div>';
             }
         }
@@ -401,6 +397,9 @@
             let didMove = false;
 
             const onPointerDown = (e) => {
+                // NEU CO MODAL DANG HIEN THI THI KHONG CHO DRAG
+                if (document.querySelector('.modal_overlay[style*="display: flex"]')) return;
+
                 if (e.touches && e.touches.length === 2) {
                     isDragging = false;
                     initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
@@ -435,6 +434,10 @@
             const onPointerUp = (e) => {
                 isDragging = false; container.style.cursor = 'grab';
                 
+                // FIX: Kiem tra xem click co thuc su nam trong khong gian ban co hay khong
+                // Neu click vao modal hoac button (nam de len tren), container.contains van tra ve false vi modal la sibling
+                if (!container.contains(e.target)) return;
+
                 if (!didMove) {
                     let clientX, clientY;
                     if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
@@ -496,7 +499,6 @@
             room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
             is_host = true; my_role = 'X';
             
-            // Them last_active khi tao
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
@@ -591,7 +593,6 @@
             const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
             ve_ban_co(); 
             
-            // Cap nhat last_active khi di chuyen
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
