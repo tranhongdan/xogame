@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Final Fix</title>
+    <title>Co Caro Vo Tan - Fixed Connection</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -333,7 +333,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
-                room_id = roomParam; is_host = false; my_role = 'O'; // Tam thoi gan, se check lai trong lang_nghe
+                room_id = roomParam; is_host = false; my_role = 'O'; 
                 document.getElementById('btn_tao_phong').style.display = 'none';
                 document.getElementById('btn_lobby').style.display = 'none'; 
                 lang_nghe_phong(room_id);
@@ -342,6 +342,7 @@
             }
         }
 
+        // --- LOBBY LOGIC ---
         window.mo_lobby = async function() {
             if (room_id) { alert("Bạn đang ở trong phòng chơi! Vui lòng bấm 'Thoát' để xem danh sách phòng."); return; }
             document.getElementById('modal_lobby').style.display = 'flex';
@@ -359,7 +360,7 @@
                     const lastTime = data.last_active || data.ngay_tao;
                     if (now - lastTime > TIMEOUT_MS) return;
                     const isFull = data.nguoi_tham_gia ? true : false;
-                    // FIX: Hien thi so mat xem da tru 2 nguoi choi
+                    // FIX VIEW COUNT
                     let raw_views = data.view_count || 0;
                     let display_views = Math.max(0, raw_views - 2);
                     
@@ -377,6 +378,7 @@
             }
         }
 
+        // --- INTERACTION ---
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
             let isDragging = false;
@@ -476,7 +478,6 @@
             document.getElementById('btn_tao_phong').textContent = "Đang tạo...";
             room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
             is_host = true; my_role = 'X';
-            // FIX: view_count khoi tao la 0, vi khi join se tu +1
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
@@ -510,13 +511,14 @@
             document.getElementById('khung_chat').style.display = 'none'; document.getElementById('nut_mo_chat').style.display = 'none';
         }
 
+        // --- FIX LOGIC KET NOI & VAI TRO ---
         function lang_nghe_phong(id) {
             updateDoc(doc(db, 'games', id), { view_count: increment(1) });
             unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
                 if (!docSnap.exists()) { alert("Phòng không tồn tại!"); roi_phong(); return; }
                 const data = docSnap.data();
                 
-                // Logic xac dinh Role chuan xac hon
+                // Logic xac dinh vai tro
                 if (data.nguoi_tao === user_id) {
                     is_host = true; 
                     my_role = 'X';
@@ -529,7 +531,7 @@
                     my_role = 'O';
                     updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id });
                 } else {
-                    // Da full -> Toi la khans gia
+                    // Da full -> Toi la khan gia
                     is_host = false;
                     my_role = 'SPECTATOR';
                 }
@@ -585,6 +587,7 @@
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
             ve_ban_co(); 
+            
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
@@ -653,11 +656,12 @@
             if (room_id) {
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
-                // FIX: Tru 2 nguoi choi khoi tong so ket noi de ra so khan gia thuc te
+                // FIX: View Count
                 let display_views = Math.max(0, so_nguoi_xem - 2);
                 mat_xem.innerHTML = `👁️ ${display_views}`;
+                
                 btn_lobby.style.display = 'none';
-                btn_leave.style.display = 'block';
+                btn_leave.style.display = 'block'; // Luon hien thi khi o trong phong
                 document.getElementById('btn_tao_phong').style.display = 'none';
             } else {
                 btn_lobby.style.display = 'block';
@@ -669,6 +673,7 @@
 
             if (nguoi_thang) {
                 div.innerHTML = `<span class="vang" style="padding:4px 8px;border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
+                // Nut Van Moi: Chi hien cho Host hoac Guest (Khong cho Spectator)
                 if ((is_host || !room_id) && my_role !== 'SPECTATOR') btn_replay.style.display = 'block';
                 btn_undo.style.display = 'none';
             } else {
