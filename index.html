@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Lobby Edition</title>
+    <title>Co Caro Vo Tan - Active Filter</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -238,7 +238,7 @@
     <div id="modal_lobby" class="modal_overlay">
         <div class="modal_content" style="width: 500px;">
             <h2 style="margin-top:0; color:#facc15">Danh Sách Phòng</h2>
-            <p style="font-size:0.9rem; color:#94a3b8;">Chọn phòng để chơi hoặc xem</p>
+            <p style="font-size:0.9rem; color:#94a3b8;">Ẩn phòng sau 5 phút không hoạt động</p>
             <div id="danh_sach_phong" class="lobby-list">
                 <div style="padding:10px; color:#64748b">Đang tải...</div>
             </div>
@@ -306,11 +306,11 @@
         let is_chat_open = false;
         let so_nguoi_xem = 0;
         
-        // VIEWPORT
         let currentZoom = 40; 
         let viewOffsetX = 0; 
         let viewOffsetY = 0;
         const PADDING = 3; 
+        const TIMEOUT_MS = 5 * 60 * 1000; // 5 phut
 
         async function init() {
             const container = document.getElementById('khung_ban_co');
@@ -329,14 +329,12 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
-                room_id = roomParam; is_host = false; my_role = 'O'; // Mac dinh la O, se check lai trong lang_nghe
+                room_id = roomParam; is_host = false; my_role = 'O'; 
                 document.getElementById('btn_tao_phong').style.display = 'none';
-                document.getElementById('btn_lobby').style.display = 'none'; // An nut lobby khi dang choi
+                document.getElementById('btn_lobby').style.display = 'none'; 
                 lang_nghe_phong(room_id);
             } else {
                 ve_ban_co();
-                // Tu dong mo lobby neu ko co phong
-                // setTimeout(mo_lobby, 500); 
             }
         }
 
@@ -347,19 +345,24 @@
             listDiv.innerHTML = '<div style="padding:10px; color:#64748b">Đang tải danh sách...</div>';
 
             try {
-                // Lay 20 phong moi nhat
-                const q = query(collection(db, "games"), orderBy("ngay_tao", "desc"), limit(20));
-                const querySnapshot = await getDocs(q);
+                // Su dung orderBy last_active de uu tien phong moi hoat dong
+                // Lay nhieu hon 20 phong de du phong khi filter
+                const q = query(collection(db, "games"), orderBy("last_active", "desc"), limit(50));
                 
+                const querySnapshot = await getDocs(q);
                 listDiv.innerHTML = '';
-                if (querySnapshot.empty) {
-                    listDiv.innerHTML = '<div style="padding:10px;">Chưa có phòng nào. Hãy tạo phòng mới!</div>';
-                    return;
-                }
+                
+                let count = 0;
+                const now = Date.now();
 
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     const id = doc.id;
+                    
+                    // Filter: Neu phong qua cu (5 phut khong hoat dong) -> Bo qua
+                    const lastTime = data.last_active || data.ngay_tao;
+                    if (now - lastTime > TIMEOUT_MS) return;
+
                     const isFull = data.nguoi_tham_gia ? true : false;
                     const viewers = data.view_count || 0;
                     
@@ -374,14 +377,18 @@
                             ${isFull ? 'Đang chơi / Full' : 'Chờ người chơi'}
                         </div>
                     `;
-                    item.onclick = () => {
-                        window.location.href = `?room=${id}`;
-                    };
+                    item.onclick = () => window.location.href = `?room=${id}`;
                     listDiv.appendChild(item);
+                    count++;
                 });
+
+                if (count === 0) {
+                    listDiv.innerHTML = '<div style="padding:10px;">Không có phòng nào hoạt động gần đây.</div>';
+                }
             } catch (e) {
                 console.error(e);
-                listDiv.innerHTML = '<div style="padding:10px; color:red">Lỗi tải danh sách.</div>';
+                // Fallback neu user chua co index last_active
+                listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Lỗi tải hoặc chưa index. Thử tạo phòng mới để hệ thống ghi nhận.</div>';
             }
         }
 
@@ -450,7 +457,6 @@
             container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
         }
 
-        // --- ZOOM ---
         function updateZoom(delta) {
             let oldZoom = currentZoom;
             let newZoom = currentZoom + delta;
@@ -477,7 +483,7 @@
         }
 
         function xu_ly_click_o_co(h, c) {
-            if (nguoi_thang || my_role === 'SPECTATOR') return; // Spectator ko dc danh
+            if (nguoi_thang || my_role === 'SPECTATOR') return; 
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return;
             gui_nuoc_di(h, c);
@@ -489,12 +495,16 @@
             document.getElementById('btn_tao_phong').textContent = "Đang tạo...";
             room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
             is_host = true; my_role = 'X';
+            
+            // Them last_active khi tao
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
                 nguoi_tao: user_id, nguoi_tham_gia: null,
                 nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, 
-                lich_su_chat: [], view_count: 1, ngay_tao: Date.now()
+                lich_su_chat: [], view_count: 1, 
+                ngay_tao: Date.now(),
+                last_active: Date.now() 
             });
             hien_thi_qr(room_id);
             lang_nghe_phong(room_id);
@@ -511,9 +521,7 @@
         window.copy_link = () => { navigator.clipboard.writeText(document.getElementById('link_phong').textContent); alert("Đã copy!"); }
 
         function lang_nghe_phong(id) {
-            // Tang view count khi vao phong
             updateDoc(doc(db, 'games', id), { view_count: increment(1) });
-            // Giam view count khi thoat (co ban)
             window.addEventListener('beforeunload', () => {
                 updateDoc(doc(db, 'games', id), { view_count: increment(-1) });
             });
@@ -522,8 +530,6 @@
                 if (!docSnap.exists()) return;
                 const data = docSnap.data();
                 
-                // --- XAC DINH ROLE SPECTATOR ---
-                // Neu minh ko phai Host, va phong da co nguoi tham gia, va minh khong phai la nguoi tham gia do
                 if (!is_host && data.nguoi_tham_gia && data.nguoi_tham_gia !== user_id) {
                     my_role = 'SPECTATOR';
                 }
@@ -584,6 +590,8 @@
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
             ve_ban_co(); 
+            
+            // Cap nhat last_active khi di chuyen
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
@@ -591,7 +599,8 @@
                 nguoi_thang: thang_cuc_bo ? my_role : null,
                 hang_thang: thang_cuc_bo || [],
                 nuoc_di_cuoi: id,
-                undo_request: null
+                undo_request: null,
+                last_active: Date.now() 
             });
         }
 
@@ -606,7 +615,6 @@
             return null;
         }
 
-        // --- DRAW BOARD ---
         function ve_ban_co() {
             const luoi = document.getElementById('luoi_co');
             const keys = Object.keys(cac_nuoc_di);
@@ -668,7 +676,6 @@
                 const div = document.createElement('div'); div.className = `tin-nhan ${msg.sender === my_role ? 'tin-ban' : 'tin-doi-thu'}`;
                 const r = document.createElement('div'); r.className='chat-role'; 
                 
-                // Hien thi ten nguoi chat
                 let name = 'Đối thủ';
                 if (msg.sender === my_role) name = 'Tôi';
                 else if (msg.sender === 'SPECTATOR') name = 'Khán giả';
