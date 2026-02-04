@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Fix View Count</title>
+    <title>Co Caro Vo Tan - Final Fix</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -270,6 +270,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -290,6 +291,7 @@
             } catch(e) {} 
         }
 
+        // VARS
         let user_id = null;
         let room_id = null;
         let is_host = false;
@@ -331,7 +333,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
-                room_id = roomParam; is_host = false; my_role = 'O'; 
+                room_id = roomParam; is_host = false; my_role = 'O'; // Tam thoi gan, se check lai trong lang_nghe
                 document.getElementById('btn_tao_phong').style.display = 'none';
                 document.getElementById('btn_lobby').style.display = 'none'; 
                 lang_nghe_phong(room_id);
@@ -357,10 +359,13 @@
                     const lastTime = data.last_active || data.ngay_tao;
                     if (now - lastTime > TIMEOUT_MS) return;
                     const isFull = data.nguoi_tham_gia ? true : false;
-                    const viewers = data.view_count || 0;
+                    // FIX: Hien thi so mat xem da tru 2 nguoi choi
+                    let raw_views = data.view_count || 0;
+                    let display_views = Math.max(0, raw_views - 2);
+                    
                     const item = document.createElement('div');
                     item.className = 'room-item';
-                    item.innerHTML = `<div><div style="font-weight:bold; color:#f8fafc">Phòng: ${id}</div><div class="eye-count">👁️ ${viewers} đang xem</div></div><div class="room-status ${isFull ? 'status-full' : 'status-wait'}">${isFull ? 'Đang chơi / Full' : 'Chờ người chơi'}</div>`;
+                    item.innerHTML = `<div><div style="font-weight:bold; color:#f8fafc">Phòng: ${id}</div><div class="eye-count">👁️ ${display_views} đang xem</div></div><div class="room-status ${isFull ? 'status-full' : 'status-wait'}">${isFull ? 'Đang chơi / Full' : 'Chờ người chơi'}</div>`;
                     item.onclick = () => window.location.href = `?room=${id}`;
                     listDiv.appendChild(item);
                     count++;
@@ -471,6 +476,7 @@
             document.getElementById('btn_tao_phong').textContent = "Đang tạo...";
             room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
             is_host = true; my_role = 'X';
+            // FIX: view_count khoi tao la 0, vi khi join se tu +1
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
@@ -509,7 +515,25 @@
             unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
                 if (!docSnap.exists()) { alert("Phòng không tồn tại!"); roi_phong(); return; }
                 const data = docSnap.data();
-                if (!is_host && data.nguoi_tham_gia && data.nguoi_tham_gia !== user_id) my_role = 'SPECTATOR';
+                
+                // Logic xac dinh Role chuan xac hon
+                if (data.nguoi_tao === user_id) {
+                    is_host = true; 
+                    my_role = 'X';
+                } else if (data.nguoi_tham_gia === user_id) {
+                    is_host = false;
+                    my_role = 'O';
+                } else if (!data.nguoi_tham_gia) {
+                    // Chua co nguoi choi thu 2 -> Toi la nguoi choi thu 2
+                    is_host = false;
+                    my_role = 'O';
+                    updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id });
+                } else {
+                    // Da full -> Toi la khans gia
+                    is_host = false;
+                    my_role = 'SPECTATOR';
+                }
+
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
@@ -533,9 +557,7 @@
                 if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
                     playSound('join'); dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                 }
-                if (!is_host && !data.nguoi_tham_gia && user_id && my_role !== 'SPECTATOR') {
-                     updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id });
-                }
+                
                 if (data.undo_request) xu_ly_undo_remote(data.undo_request, id);
                 cap_nhat_ui(); ve_ban_co();
             });
@@ -631,7 +653,9 @@
             if (room_id) {
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
-                mat_xem.innerHTML = `👁️ ${so_nguoi_xem}`;
+                // FIX: Tru 2 nguoi choi khoi tong so ket noi de ra so khan gia thuc te
+                let display_views = Math.max(0, so_nguoi_xem - 2);
+                mat_xem.innerHTML = `👁️ ${display_views}`;
                 btn_lobby.style.display = 'none';
                 btn_leave.style.display = 'block';
                 document.getElementById('btn_tao_phong').style.display = 'none';
