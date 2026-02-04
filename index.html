@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Fixed Interaction</title>
+    <title>Co Caro Vo Tan - Room Logic</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -184,7 +184,10 @@
         
         <div class="bang_dieu_khien">
             <span id="mat_xem" class="eye-count" style="margin-right:10px; display:none;">👁️ 0</span>
+            
             <button id="btn_lobby" onclick="mo_lobby()" class="btn-success">DS Phòng</button>
+            <button id="btn_roi_phong" onclick="roi_phong()" class="btn-danger" style="display:none;">Thoát</button>
+            
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại (3)</button>
             <button id="btn_choi_lai" onclick="kich_hoat_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
             <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Kết nối...</button>
@@ -293,6 +296,7 @@
         let room_id = null;
         let is_host = false;
         let my_role = 'X'; 
+        let unsubscribe = null; // Luu ham huy lang nghe
         
         let cac_nuoc_di = {}; 
         let lich_su_nuoc_di = []; 
@@ -331,7 +335,7 @@
             if (roomParam) {
                 room_id = roomParam; is_host = false; my_role = 'O'; 
                 document.getElementById('btn_tao_phong').style.display = 'none';
-                document.getElementById('btn_lobby').style.display = 'none'; 
+                // Mac dinh khi vao bang link la vao room luon
                 lang_nghe_phong(room_id);
             } else {
                 ve_ban_co();
@@ -340,6 +344,12 @@
 
         // --- LOBBY LOGIC ---
         window.mo_lobby = async function() {
+            // CHECK LOGIC: CHI KHI KHONG O TRONG PHONG MOI DUOC XEM LIST
+            if (room_id) {
+                alert("Bạn đang ở trong phòng chơi! Vui lòng bấm 'Thoát' để xem danh sách phòng.");
+                return;
+            }
+
             document.getElementById('modal_lobby').style.display = 'flex';
             const listDiv = document.getElementById('danh_sach_phong');
             listDiv.innerHTML = '<div style="padding:10px; color:#64748b">Đang tải danh sách...</div>';
@@ -397,9 +407,7 @@
             let didMove = false;
 
             const onPointerDown = (e) => {
-                // NEU CO MODAL DANG HIEN THI THI KHONG CHO DRAG
                 if (document.querySelector('.modal_overlay[style*="display: flex"]')) return;
-
                 if (e.touches && e.touches.length === 2) {
                     isDragging = false;
                     initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
@@ -407,7 +415,6 @@
                 }
                 isDragging = true; didMove = false;
                 container.style.cursor = 'grabbing';
-                
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
@@ -434,8 +441,7 @@
             const onPointerUp = (e) => {
                 isDragging = false; container.style.cursor = 'grab';
                 
-                // FIX: Kiem tra xem click co thuc su nam trong khong gian ban co hay khong
-                // Neu click vao modal hoac button (nam de len tren), container.contains van tra ve false vi modal la sibling
+                // FIX: Kiem tra click trong container
                 if (!container.contains(e.target)) return;
 
                 if (!didMove) {
@@ -522,14 +528,58 @@
         window.dong_modal = (id) => document.getElementById(id).style.display = 'none';
         window.copy_link = () => { navigator.clipboard.writeText(document.getElementById('link_phong').textContent); alert("Đã copy!"); }
 
-        function lang_nghe_phong(id) {
-            updateDoc(doc(db, 'games', id), { view_count: increment(1) });
-            window.addEventListener('beforeunload', () => {
-                updateDoc(doc(db, 'games', id), { view_count: increment(-1) });
-            });
+        // --- LEAVE ROOM LOGIC ---
+        window.roi_phong = async function() {
+            if (!room_id) return;
+            
+            // 1. Giam view count tren server
+            try {
+                await updateDoc(doc(db, 'games', room_id), { view_count: increment(-1) });
+            } catch(e) { console.log("Loi giam view:", e); }
 
-            onSnapshot(doc(db, 'games', id), (docSnap) => {
-                if (!docSnap.exists()) return;
+            // 2. Huy lang nghe Firestore
+            if (unsubscribe) {
+                unsubscribe();
+                unsubscribe = null;
+            }
+
+            // 3. Reset bien cuc bo
+            room_id = null;
+            is_host = false;
+            my_role = 'X'; // Reset role
+            cac_nuoc_di = {};
+            lich_su_nuoc_di = [];
+            luot_choi = 'X';
+            nguoi_thang = null;
+            hang_thang = [];
+            nuoc_di_cuoi = null;
+            lich_su_chat = [];
+            
+            // 4. Update UI
+            cap_nhat_ui();
+            ve_ban_co();
+            
+            // 5. URL Cleanup (xoa ?room=xyz de khong vao lai khi F5)
+            const url = new URL(window.location);
+            url.searchParams.delete('room');
+            window.history.pushState({}, '', url);
+            
+            // 6. An chat neu dang mo
+            document.getElementById('khung_chat').style.display = 'none';
+            document.getElementById('nut_mo_chat').style.display = 'none';
+        }
+
+        function lang_nghe_phong(id) {
+            // Cap nhat view
+            updateDoc(doc(db, 'games', id), { view_count: increment(1) });
+            
+            // Gan unsubscribe de co the huy sau nay
+            unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
+                if (!docSnap.exists()) {
+                    alert("Phòng không tồn tại hoặc đã bị xóa!");
+                    roi_phong();
+                    return;
+                }
                 const data = docSnap.data();
                 
                 if (!is_host && data.nguoi_tham_gia && data.nguoi_tham_gia !== user_id) {
@@ -734,11 +784,25 @@
             const btn_undo = document.getElementById('btn_undo');
             const btn_chat = document.getElementById('nut_mo_chat');
             const mat_xem = document.getElementById('mat_xem');
+            const btn_lobby = document.getElementById('btn_lobby');
+            const btn_leave = document.getElementById('btn_roi_phong');
             
             if (room_id) {
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
                 mat_xem.innerHTML = `👁️ ${so_nguoi_xem}`;
+                
+                // An nut Lobby, hien nut Thoat
+                btn_lobby.style.display = 'none';
+                btn_leave.style.display = 'block';
+                document.getElementById('btn_tao_phong').style.display = 'none';
+            } else {
+                // Khong o trong phong
+                btn_lobby.style.display = 'block';
+                btn_leave.style.display = 'none';
+                document.getElementById('btn_tao_phong').style.display = 'block';
+                mat_xem.style.display = 'none';
+                btn_chat.style.display = 'none';
             }
 
             if (nguoi_thang) {
