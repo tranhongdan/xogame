@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Infinite Sound Edition</title>
+    <title>Co Caro Vo Tan - Auto Focus</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -49,7 +49,7 @@
         .btn-warning { background-color: #d97706; }
         .btn-danger { background-color: #dc2626; }
 
-        /* --- KHUNG BAN CO (INFINITE CANVAS) --- */
+        /* --- KHUNG BAN CO --- */
         #khung_ban_co { 
             flex: 1; 
             position: relative; 
@@ -60,6 +60,8 @@
                 linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
                 linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
             background-size: var(--cell-size) var(--cell-size);
+            /* Transition de tao hieu ung truot muot khi focus */
+            transition: background-position 0.5s ease-out; 
         }
         #khung_ban_co:active { cursor: grabbing; }
 
@@ -69,6 +71,8 @@
             grid-auto-rows: var(--cell-size); 
             grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
+            /* Transition cho ca luoi co */
+            transition: top 0.5s ease-out, left 0.5s ease-out;
         }
 
         .o_co { 
@@ -167,7 +171,7 @@
 
     <div id="thong_tin">
         <div class="left-info">
-            <h1>XO Online (Infinite)</h1>
+            <h1>XO Online (Focus)</h1>
             <div id="trang_thai_luot">
                 <span id="hien_thi_luot" class="luot_choi_hien_thi do">X</span>
             </div>
@@ -182,7 +186,7 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
-        <div class="tutorial-hint" id="hint_text">Kéo vùng trống để di chuyển • Click để đánh • Zoom</div>
+        <div class="tutorial-hint" id="hint_text">Chạm màn hình để bật âm thanh • Kéo để di chuyển</div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">
@@ -243,24 +247,38 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUDIO SOUNDS (Updated) ---
-        // 1. Join Sound: Ping Pong (Doorbell style)
-        const AUDIO_JOIN_SRC = "data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7cQBCNJJOJ08nqyqyqyqytjsdqtXq8Aq5bxceLgba9K1qaGO63a9hwJ08Lq9k+t639MOHDhzhxLxq1rHz/alW3/99rX19fXnDPv/Z8//7v///9v,gAAAAABAAAAAwD///8AAg==";
-        
-        // 2. Chat Sound: Cricket Chirp (High pitched, short)
-        // Đây là mã Base64 mô phỏng tiếng 'Chirp' điện tử (gần giống tiếng dế)
+        // --- AUDIO SYSTEM (UPDATED) ---
+        // Ping-Pong (Doorbell)
+        const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC"; // Placeholder short beep
+        // Cricket (High pitch chirp)
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
 
+        // De dam bao am thanh hoat dong, chung ta can user tuong tac truoc
+        let audioEnabled = false;
         const sndJoin = new Audio(AUDIO_JOIN_SRC);
         const sndChat = new Audio(AUDIO_CHAT_SRC);
-        // Tang am luong cho tieng de
-        sndChat.volume = 1.0; 
+        
+        // Ham kich hoat am thanh lan dau tien
+        function unlock_audio() {
+            if (audioEnabled) return;
+            // Phat mot doan am thanh rong de mo khoa Audio Context
+            const dummy = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==");
+            dummy.play().then(() => {
+                audioEnabled = true;
+                console.log("Audio Unlocked");
+            }).catch(e => console.log("Unlock failed yet", e));
+        }
+
+        // Gan su kien click toan trang de mo khoa am thanh
+        document.body.addEventListener('click', unlock_audio, { once: true });
+        document.body.addEventListener('touchstart', unlock_audio, { once: true });
 
         function playSound(type) { 
+            if (!audioEnabled) return;
             try { 
-                if (type === 'join') { sndJoin.currentTime=0; sndJoin.play(); }
-                if (type === 'chat') { sndChat.currentTime=0; sndChat.play(); } 
-            } catch(e) { console.log("Audio block:", e); } 
+                if (type === 'join') { sndJoin.currentTime=0; sndJoin.play().catch(e=>console.log(e)); }
+                if (type === 'chat') { sndChat.currentTime=0; sndChat.play().catch(e=>console.log(e)); } 
+            } catch(e) {} 
         }
 
         // VARS
@@ -325,6 +343,10 @@
                 }
                 isDragging = true; didMove = false;
                 container.style.cursor = 'grabbing';
+                // Tat transition khi dang drag de khong bi lag
+                container.style.transition = 'none';
+                document.getElementById('luoi_co').style.transition = 'none';
+                
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
@@ -350,6 +372,10 @@
 
             const onPointerUp = (e) => {
                 isDragging = false; container.style.cursor = 'grab';
+                // Bat lai transition sau khi tha tay
+                container.style.transition = 'background-position 0.5s ease-out';
+                document.getElementById('luoi_co').style.transition = 'top 0.5s ease-out, left 0.5s ease-out';
+
                 if (!didMove) {
                     let clientX, clientY;
                     if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } 
@@ -370,6 +396,23 @@
             container.addEventListener('touchmove', onPointerMove, { passive: false });
             container.addEventListener('touchend', onPointerUp);
             container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
+        }
+
+        // --- HAM TAP TRUNG VAO O CO (AUTO FOCUS) ---
+        function tap_trung_o_co(h, c) {
+            const container = document.getElementById('khung_ban_co');
+            const center_screen_x = container.clientWidth / 2;
+            const center_screen_y = container.clientHeight / 2;
+            
+            // Tinh vi tri pixel cua o co dua tren toa do (h, c) va zoom hien tai
+            // Toa do pixel cua o = c * zoom, h * zoom (tinh tu goc 0,0 cua luoi)
+            // Cong thuc ViewOffset: viewOffsetX + (c * zoom) = center_screen_x
+            // => viewOffsetX = center_screen_x - (c * zoom) - (zoom/2 de can chinh giua o)
+            
+            viewOffsetX = center_screen_x - (c * currentZoom) - (currentZoom / 2);
+            viewOffsetY = center_screen_y - (h * currentZoom) - (currentZoom / 2);
+            
+            update_view_transform();
         }
 
         function updateZoom(delta) {
@@ -441,7 +484,22 @@
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
                 nguoi_thang = data.nguoi_thang;
+                
+                // KIEM TRA NUOC DI MOI DE AUTO FOCUS
+                const prev_nuoc_di = nuoc_di_cuoi;
                 nuoc_di_cuoi = data.nuoc_di_cuoi;
+                
+                // Neu co nuoc di moi va nuoc di do KHONG PHAI cua toi -> Focus
+                if (nuoc_di_cuoi && nuoc_di_cuoi !== prev_nuoc_di) {
+                    // Tim ra ai da danh nuoc nay
+                    // Nuoc di cuoi cung trong lich su
+                    const lastMoveObj = lich_su_nuoc_di[lich_su_nuoc_di.length - 1];
+                    if (lastMoveObj && lastMoveObj.player !== my_role) {
+                         const [h, c] = nuoc_di_cuoi.split(',').map(Number);
+                         tap_trung_o_co(h, c); // <--- AUTO FOCUS HERE
+                    }
+                }
+
                 hang_thang = data.hang_thang || [];
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 
