@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Smart Cursor</title>
+    <title>XO Online - Final Perfect</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -20,8 +20,7 @@
             background-color: #f1f5f9;
             color: var(--text-color); 
             font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; height: 100dvh; /* Fix cho mobile browser */
-            display: flex; flex-direction: column; 
+            height: 100vh; display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
         }
 
@@ -61,16 +60,11 @@
         #khung_ban_co { 
             flex: 1; position: relative; overflow: hidden; 
             background-color: #f8fafc; 
-            /* Mac dinh la grab, JS se override thanh pointer khi can */
-            cursor: grab; 
-            touch-action: none; 
+            cursor: grab; touch-action: none; 
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
             background-size: 20px 20px;
         }
-        /* Class css cho con tro */
-        .cursor-grab { cursor: grab !important; }
         .cursor-grabbing { cursor: grabbing !important; }
-        .cursor-pointer { cursor: pointer !important; }
 
         #luoi_co { 
             position: absolute; display: grid; 
@@ -78,7 +72,6 @@
             grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            /* Transition de muot ma nhung se bi tat khi drag */
             transition: left 0.1s, top 0.1s;
         }
 
@@ -88,6 +81,17 @@
         .o_co.o_thang { z-index: 100; }
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        /* --- HIGHLIGHTER (CON TRO ACTIVE) --- */
+        #con_tro_active {
+            position: absolute;
+            background-color: rgba(14, 165, 233, 0.2); /* Mau xanh nhat trong suot */
+            border: 2px solid #0ea5e9;
+            z-index: 5;
+            pointer-events: none; /* Click xuyen qua */
+            display: none;
+            box-sizing: border-box;
+        }
 
         /* --- CHAT & UI --- */
         #nut_mo_chat { position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background-color: #2563eb; color: white; display: none; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: 30; border: none; }
@@ -143,6 +147,7 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
+        <div id="con_tro_active"></div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">💬<div id="thong_bao_tin_moi">!</div></button>
@@ -274,6 +279,7 @@
 
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
+            const highlight = document.getElementById('con_tro_active');
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
 
             const onPointerDown = (e) => {
@@ -282,6 +288,7 @@
                 isDragging = true; didMove = false; container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
+                highlight.style.display = 'none'; // An highlight khi drag
             };
 
             const onPointerMove = (e) => {
@@ -298,10 +305,25 @@
                     update_view_transform();
                     e.preventDefault();
                 } else {
-                    // HOVER LOGIC FOR CURSOR
+                    // --- HIGHLIGHTER LOGIC ---
                     const rect = container.getBoundingClientRect();
-                    const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
-                    const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
+                    const relX = pageX - rect.left;
+                    const relY = pageY - rect.top;
+                    
+                    const c = Math.floor((relX - viewOffsetX) / currentZoom);
+                    const h = Math.floor((relY - viewOffsetY) / currentZoom);
+                    
+                    // Cap nhat vi tri o active
+                    const px = viewOffsetX + c * currentZoom;
+                    const py = viewOffsetY + h * currentZoom;
+                    
+                    highlight.style.width = `${currentZoom}px`;
+                    highlight.style.height = `${currentZoom}px`;
+                    highlight.style.left = `${px}px`;
+                    highlight.style.top = `${py}px`;
+                    highlight.style.display = 'block';
+
+                    // Mouse Cursor Icon
                     if (!cac_nuoc_di[`${h},${c}`]) container.style.cursor = 'pointer'; 
                     else container.style.cursor = 'grab';
                 }
@@ -309,6 +331,9 @@
 
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
+                // Hien lai highlight sau khi drag xong
+                highlight.style.display = 'block';
+                
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
                     let clientX, clientY;
@@ -319,6 +344,9 @@
                     xu_ly_click_o_co(h, c);
                 }
             };
+            
+            // An highlight khi ra khoi ban co
+            container.addEventListener('mouseleave', () => { highlight.style.display = 'none'; });
 
             container.addEventListener('mousedown', onPointerDown); window.addEventListener('mousemove', onPointerMove); window.addEventListener('mouseup', onPointerUp);
             container.addEventListener('touchstart', onPointerDown, { passive: false }); container.addEventListener('touchmove', onPointerMove, { passive: false }); container.addEventListener('touchend', onPointerUp);
@@ -337,12 +365,18 @@
 
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
+            const highlight = document.getElementById('con_tro_active');
+            
             const minH = parseInt(luoi.dataset.minH || -1);
             const minC = parseInt(luoi.dataset.minC || -1);
             luoi.style.left = `${viewOffsetX + minC * currentZoom}px`;
             luoi.style.top = `${viewOffsetY + minH * currentZoom}px`;
+            
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
+            
+            // An highlight khi zoom/pan de tranh giat
+            highlight.style.display = 'none';
         }
 
         function xu_ly_click_o_co(h, c) {
