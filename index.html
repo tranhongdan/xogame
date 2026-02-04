@@ -3,16 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Co Caro Vo Tan - Chat</title>
+    <title>Co Caro Vo Tan - Paper Edition</title>
     <style>
         /* --- CSS BIEN --- */
-        :root { --cell-size: 40px; --font-size: 20px; }
+        :root { 
+            --cell-size: 40px; 
+            --font-size: 20px;
+            --paper-bg: #ffffff;
+            --grid-line: #cbd5e1;
+            --text-color: #1e293b;
+        }
 
         /* --- CSS CO BAN --- */
-        body { margin: 0; padding: 0; background-color: #0f172a; color: #f1f5f9; font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; }
+        body { 
+            margin: 0; padding: 0; 
+            background-color: var(--paper-bg); 
+            color: var(--text-color); 
+            font-family: ui-sans-serif, system-ui, sans-serif; 
+            height: 100vh; display: flex; flex-direction: column; 
+            overflow: hidden; user-select: none; 
+        }
 
         /* --- HEADER UI --- */
-        #thong_tin { flex: 0 0 auto; padding: 0.75rem 1rem; background-color: #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        #thong_tin { 
+            flex: 0 0 auto; padding: 0.75rem 1rem; 
+            background-color: #1e293b; color: #f1f5f9;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            z-index: 20; display: flex; justify-content: space-between; align-items: center; gap: 10px; 
+        }
         .left-info { display: flex; flex-direction: column; gap: 4px; }
         h1 { margin: 0; font-size: 1.1rem; font-weight: bold; color: #facc15; }
         .bang_dieu_khien { display: flex; gap: 0.5rem; align-items: center; }
@@ -29,18 +47,46 @@
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
         .btn-warning { background-color: #d97706; }
+        .btn-danger { background-color: #dc2626; }
 
         /* --- KHUNG BAN CO --- */
-        #khung_ban_co { flex: 1; overflow: hidden; position: relative; background-color: #0f172a; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
+        #khung_ban_co { 
+            flex: 1; overflow: hidden; position: relative; 
+            background-color: var(--paper-bg); 
+            cursor: grab; touch-action: none; 
+            display: flex; align-items: center; justify-content: center; 
+            background-image: radial-gradient(#e2e8f0 1px, transparent 0);
+            background-size: 20px 20px;
+        }
         #khung_ban_co:active { cursor: grabbing; }
 
-        #luoi_co { display: grid; background-color: #334155; gap: 1px; border: 1px solid #334155; grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); transform-origin: center center; }
+        #luoi_co { 
+            display: grid; 
+            background-color: var(--grid-line); 
+            gap: 1px; 
+            border: 1px solid var(--grid-line); 
+            grid-auto-rows: var(--cell-size); 
+            grid-auto-columns: var(--cell-size); 
+            transform-origin: center center; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
 
-        .o_co { background-color: #1e293b; display: flex; justify-content: center; align-items: center; cursor: pointer; font-weight: bold; position: relative; width: var(--cell-size); height: var(--cell-size); font-size: var(--font-size); }
-        .o_co:hover { background-color: #334155; }
-        .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
-        .o_vua_danh { background-color: #334155 !important; box-shadow: inset 0 0 0 2px #22d3ee; }
-        .o_co.o_thang { background-color: #facc15 !important; box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #fff !important; animation: thang_cuoc 0.5s infinite alternate; z-index: 100; }
+        .o_co { 
+            background-color: var(--paper-bg); 
+            display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; font-weight: bold; position: relative; 
+            width: var(--cell-size); height: var(--cell-size); 
+            font-size: var(--font-size); 
+        }
+        .o_co:hover { background-color: #f1f5f9; } 
+        .quan_x { color: #ef4444; } 
+        .quan_o { color: #3b82f6; }
+        .o_vua_danh { background-color: #e0f2fe !important; box-shadow: inset 0 0 0 2px #38bdf8; }
+        .o_co.o_thang { 
+            background-color: #fef08a !important; 
+            box-shadow: 0 0 15px #facc15, inset 0 0 0 2px #eab308 !important; 
+            animation: thang_cuoc 0.5s infinite alternate; z-index: 100; 
+        }
         .o_co.o_thang .quan_x, .o_co.o_thang .quan_o { color: #451a03 !important; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
@@ -63,12 +109,12 @@
         #khung_chat {
             position: fixed; bottom: 80px; right: 20px;
             width: 300px; height: 400px;
-            background-color: #1e293b;
+            background-color: #1e293b; color: white;
             border-radius: 8px;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
             display: none; flex-direction: column;
             z-index: 31; border: 1px solid #334155;
-            max-width: 85vw; /* Mobile responsive */
+            max-width: 85vw;
         }
         .chat-header {
             padding: 10px; background: #0f172a; border-radius: 8px 8px 0 0;
@@ -97,19 +143,24 @@
 
         /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
-        .modal_content { background: #1e293b; padding: 2rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
+        .modal_content { background: #1e293b; color: white; padding: 2rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
         .qr_image { background: white; padding: 10px; border-radius: 4px; margin: 1rem 0; width: 200px; height: 200px; }
         .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
-        #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #0f172a; border-top: 1px solid #1e293b; }
-        .tutorial-hint { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; color: #94a3b8; pointer-events: none; }
+        
+        #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: var(--paper-bg); border-top: 1px solid #e2e8f0; }
+        .tutorial-hint { 
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
+            background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 20px; 
+            font-size: 0.75rem; color: white; pointer-events: none; 
+        }
     </style>
 </head>
 <body>
 
     <div id="thong_tin">
         <div class="left-info">
-            <h1>XO Online</h1>
+            <h1>XO Online (Giấy tập)</h1>
             <div id="trang_thai_luot">
                 <span id="hien_thi_luot" class="luot_choi_hien_thi do">X</span>
             </div>
@@ -117,14 +168,14 @@
         
         <div class="bang_dieu_khien">
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại (3)</button>
-            <button id="btn_choi_lai" onclick="xu_ly_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
+            <button id="btn_choi_lai" onclick="kich_hoat_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
             <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Kết nối...</button>
         </div>
     </div>
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
-        <div class="tutorial-hint" id="hint_text">Kéo để di chuyển • Lăn chuột/2 ngón để Zoom</div>
+        <div class="tutorial-hint" id="hint_text">Kéo để di chuyển • Zoom: Lăn chuột hoặc 2 ngón tay</div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">
@@ -135,7 +186,7 @@
     <div id="khung_chat">
         <div class="chat-header">
             <span style="font-weight:bold; color:#facc15">Chat Room</span>
-            <button onclick="bat_tat_chat()" style="padding:2px 8px; background:none; font-size:1.2rem">✖</button>
+            <button onclick="bat_tat_chat()" style="padding:2px 8px; background:none; font-size:1.2rem; color:white;">✖</button>
         </div>
         <div id="noi_dung_chat" class="chat-body"></div>
         <div class="chat-footer">
@@ -185,6 +236,22 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- AUDIO SOUNDS (Base64 để không lỗi link) ---
+        const SOUND_JOIN = new Audio("data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"); // Short placeholder, real data below is better logic
+        // Su dung am thanh "Ding" (Join) va "Pop" (Chat) - Base64 ngan gon
+        const AUDIO_JOIN_SRC = "data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7cQBCNJJOJ08nqyqyqyqytjsdqtXq8Aq5bxceLgba9K1qaGO63a9hwJ08Lq9k+t639MOHDhzhxLxq1rHz/alW3/99rX19fXnDPv/Z8//7v///9v,gAAAAABAAAAAwD///8AAg==";
+        const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YXIGAACBhYqFbF1mfJd6gWCDgoOIgH9/f32CgH1+f4CAgH9/gIB/f39/f39/f3+Af39/f39/f39/f39/f39/f39/f39/f39/f39/f39/f39/fw==";
+
+        const sndJoin = new Audio(AUDIO_JOIN_SRC);
+        const sndChat = new Audio(AUDIO_CHAT_SRC);
+
+        function playSound(type) {
+            try {
+                if (type === 'join') sndJoin.play().catch(e => console.log("Audio block:", e));
+                if (type === 'chat') sndChat.play().catch(e => console.log("Audio block:", e));
+            } catch(e) {}
+        }
+
         let user_id = null;
         let room_id = null;
         let is_host = false;
@@ -197,6 +264,7 @@
         let hang_thang = []; 
         let nuoc_di_cuoi = null;
         let so_lan_undo = { X: 3, O: 3 };
+
         // Chat vars
         let lich_su_chat = [];
         let is_chat_open = false;
@@ -226,22 +294,40 @@
             }
         }
 
-        // --- DRAG & ZOOM ---
         function setup_drag_and_zoom() {
             const container = document.getElementById('khung_ban_co');
             const hint = document.getElementById('hint_text');
+            
             let isDown = false;
             let startX, startY, scrollLeft, scrollTop;
+            let initialPinchDist = 0;
 
             const startDrag = (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    isDown = false; 
+                    initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    return;
+                }
                 isDown = true; container.style.cursor = 'grabbing'; hint.style.display = 'none'; 
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX - container.offsetLeft; startY = pageY - container.offsetTop;
                 scrollLeft = container.scrollLeft; scrollTop = container.scrollTop;
             };
+
             const endDrag = () => { isDown = false; container.style.cursor = 'grab'; };
+
             const moveDrag = (e) => {
+                if (e.touches && e.touches.length === 2) {
+                    e.preventDefault();
+                    const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                    if (initialPinchDist > 0) {
+                        const diff = dist - initialPinchDist;
+                        updateZoom(diff * 0.2); 
+                        initialPinchDist = dist; 
+                    }
+                    return;
+                }
                 if (!isDown) return; e.preventDefault();
                 const pageX = e.pageX || e.touches[0].pageX;
                 const pageY = e.pageY || e.touches[0].pageY;
@@ -254,19 +340,23 @@
             container.addEventListener('mouseleave', endDrag);
             container.addEventListener('mouseup', endDrag);
             container.addEventListener('mousemove', moveDrag);
-            container.addEventListener('touchstart', (e) => { if(e.touches.length === 1) startDrag(e); });
+            container.addEventListener('touchstart', startDrag, { passive: false });
             container.addEventListener('touchend', endDrag);
-            container.addEventListener('touchmove', (e) => { if(e.touches.length === 1) moveDrag(e); });
-            container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
+            container.addEventListener('touchmove', moveDrag, { passive: false });
+            container.addEventListener('wheel', (e) => { 
+                e.preventDefault(); 
+                const delta = Math.sign(e.deltaY) * -5;
+                updateZoom(delta); 
+            }, { passive: false });
         }
 
         function updateZoom(delta) {
             let newZoom = currentZoom + delta;
-            if (newZoom < 15) newZoom = 15; if (newZoom > 100) newZoom = 100;
+            if (newZoom < 10) newZoom = 10; if (newZoom > 150) newZoom = 150;
             currentZoom = newZoom;
             const root = document.documentElement;
             root.style.setProperty('--cell-size', `${currentZoom}px`);
-            root.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 10)}px`);
+            root.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
         }
 
         // --- GAME FUNC ---
@@ -281,7 +371,7 @@
                 nguoi_thang: null, hang_thang: [], 
                 nguoi_tao: user_id, nguoi_tham_gia: null,
                 nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, 
-                lich_su_chat: [], // NEW: Chat array
+                lich_su_chat: [],
                 ngay_tao: Date.now()
             });
 
@@ -313,16 +403,28 @@
                 hang_thang = data.hang_thang || [];
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 
-                // SYNC CHAT
+                // --- XU LY CHAT & AM THANH ---
                 const chat_cu = lich_su_chat.length;
                 lich_su_chat = data.lich_su_chat || [];
                 render_chat();
-                if (lich_su_chat.length > chat_cu && !is_chat_open) {
-                    document.getElementById('thong_bao_tin_moi').style.display = 'flex';
+                
+                // Kiem tra tin nhan moi
+                if (lich_su_chat.length > chat_cu) {
+                    const last_msg = lich_su_chat[lich_su_chat.length - 1];
+                    // Neu tin nhan cua doi thu -> Phat am thanh
+                    if (last_msg.sender !== my_role) {
+                        playSound('chat');
+                        if (!is_chat_open) {
+                            document.getElementById('thong_bao_tin_moi').style.display = 'flex';
+                        }
+                    }
                 }
 
+                // --- XU LY KET NOI & AM THANH ---
                 if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') {
-                    dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
+                    playSound('join'); // Phat am thanh khi co nguoi vao
+                    dong_modal('modal_qr'); 
+                    alert("Người chơi thứ 2 đã tham gia!");
                 }
                 if (!is_host && !data.nguoi_tham_gia && user_id) updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id });
 
@@ -380,14 +482,13 @@
             
             if (box.style.display === 'flex') {
                 box.style.display = 'none';
-                btn.style.display = 'flex'; // Hien lai nut
+                btn.style.display = 'flex'; 
                 is_chat_open = false;
             } else {
                 box.style.display = 'flex';
-                btn.style.display = 'none'; // An nut khi mo chat
-                badge.style.display = 'none'; // Tat thong bao
+                btn.style.display = 'none'; 
+                badge.style.display = 'none'; 
                 is_chat_open = true;
-                // Scroll to bottom
                 const body = document.getElementById('noi_dung_chat');
                 body.scrollTop = body.scrollHeight;
                 document.getElementById('chat_input').focus();
@@ -424,7 +525,6 @@
             const new_msg = { sender: my_role, content: text, time: Date.now() };
             const new_history = [...lich_su_chat, new_msg];
             
-            // Cap nhat Firestore
             await updateDoc(doc(db, 'games', room_id), {
                 lich_su_chat: new_history
             });
@@ -434,7 +534,7 @@
             if (e.key === 'Enter') gui_tin_nhan();
         }
 
-        // --- CAC FUNCTION KHAC ---
+        // --- UTILS ---
         window.gui_yeu_cau_undo = async () => {
             if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return;
             if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; }
@@ -464,8 +564,17 @@
             }
         }
 
+        window.kich_hoat_choi_lai = async () => {
+            if (!nguoi_thang && cac_nuoc_di && Object.keys(cac_nuoc_di).length > 0) {
+                const conf = confirm("Ván đấu chưa kết thúc. Bạn có chắc chắn muốn tạo ván mới không?");
+                if (!conf) return;
+            }
+            await xu_ly_choi_lai();
+        }
+
         window.xu_ly_choi_lai = async () => {
             let next_start = nguoi_thang === 'X' ? 'O' : (nguoi_thang === 'O' ? 'X' : 'X');
+            if (!nguoi_thang) next_start = 'X';
             if (room_id) {
                 await updateDoc(doc(db, 'games', room_id), {
                     cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: next_start,
@@ -479,9 +588,9 @@
             }
         }
 
-        function tinh_toan_thang(h, c, player, board) {
-             const dirs = [[0,1], [1,0], [1,1], [1,-1]];
-             for (let [dh, dc] of dirs) {
+        function tinh_toan_thang(h, c, player, board) { 
+            const dirs = [[0,1], [1,0], [1,1], [1,-1]]; 
+            for (let [dh, dc] of dirs) {
                 let line = [`${h},${c}`], count = 1;
                 for (let k=1; k<5; k++) {
                     const id = `${h + dh*k},${c + dc*k}`;
@@ -491,9 +600,9 @@
                     const id = `${h - dh*k},${c - dc*k}`;
                     if (board[id] === player) { count++; line.push(id); } else break;
                 }
-                if (count >= 5) return line;
-             }
-             return null;
+                if (count >= 5) return line; 
+            } 
+            return null;
         }
 
         function ve_ban_co() {
@@ -546,7 +655,7 @@
             const btn_undo = document.getElementById('btn_undo');
             const btn_chat = document.getElementById('nut_mo_chat');
             
-            if (room_id && !is_chat_open) btn_chat.style.display = 'flex'; // Hien nut chat
+            if (room_id && !is_chat_open) btn_chat.style.display = 'flex'; 
 
             if (nguoi_thang) {
                 div.innerHTML = `<span class="vang" style="padding:4px 8px;border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
@@ -565,7 +674,14 @@
                     if (document.getElementById('btn_undo').textContent === "Đang xin...") btn_undo.disabled = true;
                 }
                 div.innerHTML = html;
-                btn_replay.style.display = 'none';
+                
+                if (is_host || !room_id) {
+                    btn_replay.style.display = 'block';
+                    btn_replay.textContent = "Ván Mới";
+                    btn_replay.className = "btn-danger"; 
+                } else {
+                    btn_replay.style.display = 'none';
+                }
             }
         }
 
@@ -574,4 +690,3 @@
     </script>
 </body>
 </html>
-
