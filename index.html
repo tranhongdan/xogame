@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Fixed Stable</title>
+    <title>XO Online - Fixed Lag</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -58,8 +58,7 @@
             position: relative; 
             overflow: hidden; 
             background-color: #f8fafc; 
-            cursor: grab; touch-action: none;
-            /* Them cham nen de de nhin thay vung keo tha */
+            cursor: grab; touch-action: none; 
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
             background-size: 20px 20px;
         }
@@ -75,7 +74,7 @@
             grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            transition: left 0.1s, top 0.1s; /* Smooth movement */
+            transition: left 0.1s, top 0.1s;
         }
 
         .o_co { 
@@ -274,6 +273,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -314,7 +314,6 @@
             viewOffsetX = container.clientWidth / 2;
             viewOffsetY = container.clientHeight / 2;
 
-            // VE BAN CO VA UI NGAY LAP TUC (DE KHONG BI TRANG MAN HINH)
             ve_ban_co();
             cap_nhat_ui();
             setup_interaction();
@@ -323,13 +322,10 @@
             try {
                 await signInAnonymously(auth);
                 user_id = auth.currentUser.uid;
-                
-                // CHECK URL PARAM SAU KHI AUTH THANH CONG
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomParam = urlParams.get('room');
                 if (roomParam) {
                     room_id = roomParam; 
-                    // Mac dinh la khach, se cap nhat trong lang_nghe_phong
                     is_host = false; my_role = 'O'; 
                     lang_nghe_phong(room_id);
                 } else {
@@ -343,7 +339,7 @@
         }
 
         window.mo_lobby = async function() {
-            if (room_id) { alert("Vui lòng thoát phòng hiện tại để xem danh sách."); return; }
+            if (room_id) { alert("Vui lòng thoát phòng hiện tại."); return; }
             document.getElementById('modal_lobby').style.display = 'flex';
             const listDiv = document.getElementById('danh_sach_phong');
             listDiv.innerHTML = '<div style="padding:10px; color:#64748b">Đang tải...</div>';
@@ -449,7 +445,6 @@
             document.getElementById('btn_tao_phong').textContent = "Đang tạo...";
             room_id = Math.random().toString(36).substring(2, 8).toUpperCase();
             is_host = true; my_role = 'X';
-            // Reset view_count to 0 so joining sets it to 1
             await setDoc(doc(db, 'games', room_id), {
                 cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X',
                 nguoi_thang: null, hang_thang: [], 
@@ -500,6 +495,7 @@
                     is_host = false; my_role = 'SPECTATOR';
                 }
 
+                // CAP NHAT DATA TU SERVER -> CLIENT
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
                 luot_choi = data.luot_choi;
@@ -509,6 +505,11 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
+                // VE LAI GIAO DIEN
+                cap_nhat_ui();
+                ve_ban_co();
+
+                // CHAT & AUDIO
                 const chat_cu = lich_su_chat.length;
                 lich_su_chat = data.lich_su_chat || [];
                 render_chat();
@@ -525,7 +526,6 @@
                 }
                 
                 if (data.undo_request) xu_ly_undo_remote(data.undo_request, id);
-                cap_nhat_ui(); ve_ban_co();
             });
         }
         
@@ -538,26 +538,22 @@
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
-            if (!room_id) { 
-                cac_nuoc_di[id] = luot_choi;
-                lich_su_nuoc_di.push({id, player: luot_choi});
-                nuoc_di_cuoi = id;
-                const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
-                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
-                else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
-                ve_ban_co(); cap_nhat_ui(); return;
-            }
+            // Khong cho phep danh neu chua den luot
             if (luot_choi !== my_role) return;
-            cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
-            const thang_cuc_bo = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
-            ve_ban_co(); 
             
+            // CAP NHAT CLIENT TRUOC (OPTIMISTIC UI)
+            cac_nuoc_di[id] = my_role; 
+            nuoc_di_cuoi = id;
+            const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
+            ve_ban_co(); // Ve ngay lap tuc
+            
+            // GUI LEN SERVER
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
-                luot_choi: thang_cuc_bo ? my_role : (my_role === 'X' ? 'O' : 'X'),
-                nguoi_thang: thang_cuc_bo ? my_role : null,
-                hang_thang: thang_cuc_bo || [],
+                luot_choi: thang ? my_role : (my_role === 'X' ? 'O' : 'X'),
+                nguoi_thang: thang ? my_role : null,
+                hang_thang: thang || [],
                 nuoc_di_cuoi: id,
                 undo_request: null,
                 last_active: Date.now() 
@@ -631,7 +627,7 @@
                 
                 btn_lobby.style.display = 'none';
                 btn_create.style.display = 'none';
-                btn_leave.style.display = 'block'; // Luon hien thi khi o trong phong
+                btn_leave.style.display = 'block'; // FIX: LUON HIEN THI
             } else {
                 // DANG O LANH
                 btn_lobby.style.display = 'block';
