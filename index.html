@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - 2 Touch Confirm</title>
+    <title>XO Online - Blue Border Only</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -23,7 +23,7 @@
             height: 100vh; height: 100dvh; 
             display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
-            -webkit-tap-highlight-color: transparent; /* Bo highlight mac dinh cua mobile */
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* --- HEADER UI --- */
@@ -96,21 +96,21 @@
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        /* --- O ACTIVE (GHOST) --- */
-        #o_active_container {
+        /* --- ACTIVE HIGHLIGHT (CHI CO VIEN) --- */
+        #active_border {
             position: absolute;
             width: var(--cell-size); height: var(--cell-size);
             box-sizing: border-box;
-            z-index: 10; pointer-events: none; 
-            border: 2px solid #3b82f6; /* Vien xanh duong active */
-            background-color: rgba(59, 130, 246, 0.1);
-            display: none; /* An mac dinh */
-            justify-content: center; align-items: center;
-            font-weight: bold; font-size: var(--font-size);
-            opacity: 0.7;
+            z-index: 10; pointer-events: none;
+            
+            /* CHI HIEN VIEN, KHONG HIEN QUAN CO */
+            border: 2px solid #3b82f6; /* Vien xanh duong dam */
+            background-color: rgba(59, 130, 246, 0.1); /* Nen xanh nhat */
+            
+            display: none; 
+            /* Animation nhe */
+            animation: pulse-border 1.5s infinite;
         }
-        /* Hieu ung nhap nhay nhe de biet dang active */
-        #o_active_container { animation: pulse-border 1.5s infinite; }
         @keyframes pulse-border { 50% { border-color: #60a5fa; background-color: rgba(59, 130, 246, 0.2); } }
 
         /* --- CHAT & UI --- */
@@ -165,7 +165,7 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
-        <div id="o_active_container"></div>
+        <div id="active_border"></div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">💬<div id="thong_bao_tin_moi">!</div></button>
@@ -237,7 +237,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -253,7 +252,7 @@
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
-        let o_dang_chon_id = null; // BIEN QUAN TRONG CHO 2 STEP CLICK
+        let pending_move = null; // Luu trang thai active
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
         async function init() {
@@ -286,7 +285,10 @@
                     const lastTime = data.last_active || data.ngay_tao;
                     if (now - lastTime > TIMEOUT_MS) return;
                     const isFull = data.nguoi_tham_gia ? true : false;
-                    let display_views = Math.max(0, (data.view_count || 0) - 2);
+                    // FIX: Hien thi view count tru 2 nguoi choi (dam bao khong am)
+                    let raw_count = data.view_count || 0;
+                    let display_views = Math.max(0, raw_count - (data.nguoi_tham_gia ? 2 : 1));
+                    
                     const item = document.createElement('div'); item.className = 'room-item';
                     item.innerHTML = `<div><div style="font-weight:bold; color:#f8fafc">Phòng: ${id}</div><div class="eye-count">👁️ ${display_views}</div></div><div class="room-status ${isFull ? 'status-full' : 'status-wait'}">${isFull ? 'Full' : 'Chờ'}</div>`;
                     item.onclick = () => window.location.href = `?room=${id}`;
@@ -298,7 +300,7 @@
 
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
-            const activeBox = document.getElementById('o_active_container');
+            const highlight = document.getElementById('active_border');
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
 
             const onPointerDown = (e) => {
@@ -307,7 +309,7 @@
                 isDragging = true; didMove = false; container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
-                activeBox.style.display = 'none'; // An active box khi drag de khong bi vuong
+                highlight.style.display = 'none'; // An khi drag
             };
 
             const onPointerMove = (e) => {
@@ -316,7 +318,6 @@
                 if (isDragging) {
                     const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                     const dx = pageX - startX; const dy = pageY - startY;
-                    // TANG NGUONG DRAG LEN 5px de touch ko bi nham la drag
                     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) didMove = true;
                     viewOffsetX += dx; viewOffsetY += dy;
                     startX = pageX; startY = pageY;
@@ -328,8 +329,7 @@
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
                 
-                // Hien lai neu dang co o chon
-                if (o_dang_chon_id) update_view_transform();
+                if (pending_move) update_view_transform(); // Hien lai neu dang co o active
 
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
@@ -359,54 +359,43 @@
 
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
-            const activeBox = document.getElementById('o_active_container');
-            
+            const highlight = document.getElementById('active_border');
             const minH = parseInt(luoi.dataset.minH || -1);
             const minC = parseInt(luoi.dataset.minC || -1);
             luoi.style.left = `${viewOffsetX + minC * currentZoom}px`;
             luoi.style.top = `${viewOffsetY + minH * currentZoom}px`;
-            
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
             
-            // RENDER ACTIVE BOX
-            if (o_dang_chon_id) {
-                const [h, c] = o_dang_chon_id.split(',').map(Number);
+            // DRAW ACTIVE BORDER ONLY
+            if (pending_move) {
+                const [h, c] = pending_move.id.split(',').map(Number);
                 const px = viewOffsetX + c * currentZoom;
                 const py = viewOffsetY + h * currentZoom;
-                
-                activeBox.style.width = `${currentZoom}px`; 
-                activeBox.style.height = `${currentZoom}px`;
-                activeBox.style.left = `${px}px`; 
-                activeBox.style.top = `${py}px`;
-                activeBox.style.display = 'flex'; // Flex de can giua chu
-                
-                // Show Ghost Character
-                const char = (room_id) ? my_role : luot_choi;
-                activeBox.textContent = char;
-                activeBox.style.color = (char === 'X') ? '#ef4444' : '#3b82f6';
+                highlight.style.width = `${currentZoom}px`; highlight.style.height = `${currentZoom}px`;
+                highlight.style.left = `${px}px`; highlight.style.top = `${py}px`;
+                highlight.style.display = 'block';
             } else {
-                activeBox.style.display = 'none';
+                highlight.style.display = 'none';
             }
         }
 
-        // --- XU LY 2 STEP CLICK ---
+        // --- CORE: XU LY 2 CHAM ---
         function xu_ly_click_o_co(h, c) {
             if (nguoi_thang || my_role === 'SPECTATOR') return; 
-            
-            // ONLINE check turn
             if (room_id && luot_choi !== my_role) return;
 
             const id = `${h},${c}`;
-            if (cac_nuoc_di[id]) return; // O da co quan
+            if (cac_nuoc_di[id]) return;
 
-            if (o_dang_chon_id !== id) {
-                // STEP 1: ACTIVE (Hien Ghost)
-                o_dang_chon_id = id;
+            // LOGIC 2 STEP
+            if (!pending_move || pending_move.id !== id) {
+                // CHAM LAN 1: ACTIVE (HIEN VIEN XANH)
+                pending_move = { id: id };
                 update_view_transform(); 
             } else {
-                // STEP 2: CONFIRM (Danh that)
-                o_dang_chon_id = null;
+                // CHAM LAN 2: CONFIRM
+                pending_move = null;
                 update_view_transform();
                 gui_nuoc_di(h, c);
             }
@@ -444,7 +433,7 @@
             if (unsubscribe) { unsubscribe(); unsubscribe = null; }
             room_id = null; is_host = false; my_role = 'X'; 
             cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; lich_su_chat = [];
-            o_dang_chon_id = null; // Reset ghost
+            pending_move = null; 
             cap_nhat_ui(); ve_ban_co();
             const url = new URL(window.location); url.searchParams.delete('room'); window.history.pushState({}, '', url);
             document.getElementById('khung_chat').style.display = 'none'; document.getElementById('nut_mo_chat').style.display = 'none';
@@ -469,8 +458,8 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
-                // RESET GHOST KHI CO NUOC DI MOI
-                o_dang_chon_id = null; 
+                // Xoa Active khi co nuoc di moi
+                pending_move = null; 
                 
                 const chat_cu = lich_su_chat.length;
                 lich_su_chat = data.lich_su_chat || [];
@@ -496,7 +485,7 @@
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
             
-            // --- SOLO MODE (OFFLINE) ---
+            // SOLO
             if (!room_id) {
                 cac_nuoc_di[id] = luot_choi;
                 nuoc_di_cuoi = id;
@@ -507,7 +496,7 @@
                 return;
             }
 
-            // --- ONLINE MODE ---
+            // ONLINE
             if (luot_choi !== my_role) return;
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
@@ -582,6 +571,7 @@
                 // ONLINE
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
+                // FIX VIEW COUNT: TONG - 2 (nhung khong am)
                 let display_views = Math.max(0, so_nguoi_xem - 2);
                 mat_xem.innerHTML = `👁️ ${display_views}`;
                 
