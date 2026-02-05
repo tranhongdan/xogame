@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Touch Perfect</title>
+    <title>XO Online - 2 Touch Confirm</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -23,6 +23,7 @@
             height: 100vh; height: 100dvh; 
             display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
+            -webkit-tap-highlight-color: transparent; /* Bo highlight mac dinh cua mobile */
         }
 
         /* --- HEADER UI --- */
@@ -43,6 +44,7 @@
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
         .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.7rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; white-space: nowrap; }
+        .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; }
         
         @keyframes pulse { 50% { opacity: .5; } }
 
@@ -94,23 +96,22 @@
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        /* --- QUAN CO MO (GHOST PIECE) --- */
-        #quan_ao {
+        /* --- O ACTIVE (GHOST) --- */
+        #o_active_container {
             position: absolute;
             width: var(--cell-size); height: var(--cell-size);
-            display: flex; justify-content: center; align-items: center;
-            font-weight: bold; font-size: var(--font-size);
-            z-index: 10; pointer-events: none; 
-            background-color: rgba(255, 255, 255, 0.8);
-            border: 2px dashed #94a3b8;
             box-sizing: border-box;
+            z-index: 10; pointer-events: none; 
+            border: 2px solid #3b82f6; /* Vien xanh duong active */
+            background-color: rgba(59, 130, 246, 0.1);
             display: none; /* An mac dinh */
-            animation: pulse-ghost 1s infinite;
+            justify-content: center; align-items: center;
+            font-weight: bold; font-size: var(--font-size);
+            opacity: 0.7;
         }
-        @keyframes pulse-ghost { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-        
-        .ghost-x { color: rgba(239, 68, 68, 0.7) !important; border-color: rgba(239, 68, 68, 0.5) !important; }
-        .ghost-o { color: rgba(59, 130, 246, 0.7) !important; border-color: rgba(59, 130, 246, 0.5) !important; }
+        /* Hieu ung nhap nhay nhe de biet dang active */
+        #o_active_container { animation: pulse-border 1.5s infinite; }
+        @keyframes pulse-border { 50% { border-color: #60a5fa; background-color: rgba(59, 130, 246, 0.2); } }
 
         /* --- CHAT & UI --- */
         #nut_mo_chat { position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background-color: #2563eb; color: white; display: none; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: 30; border: none; }
@@ -164,7 +165,7 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
-        <div id="quan_ao"></div>
+        <div id="o_active_container"></div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">💬<div id="thong_bao_tin_moi">!</div></button>
@@ -297,7 +298,7 @@
 
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
-            const ghost = document.getElementById('quan_ao');
+            const activeBox = document.getElementById('o_active_container');
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
 
             const onPointerDown = (e) => {
@@ -306,18 +307,17 @@
                 isDragging = true; didMove = false; container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
-                ghost.style.display = 'none'; // An ghost khi drag
+                activeBox.style.display = 'none'; // An active box khi drag de khong bi vuong
             };
 
             const onPointerMove = (e) => {
-                const pageX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
-                const pageY = e.pageY || (e.touches ? e.touches[0].pageY : 0);
-
                 if (e.touches && e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if (initialPinchDist > 0) updateZoom((dist - initialPinchDist) * 0.2); initialPinchDist = dist; return; }
                 
                 if (isDragging) {
+                    const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                     const dx = pageX - startX; const dy = pageY - startY;
-                    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didMove = true;
+                    // TANG NGUONG DRAG LEN 5px de touch ko bi nham la drag
+                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) didMove = true;
                     viewOffsetX += dx; viewOffsetY += dy;
                     startX = pageX; startY = pageY;
                     update_view_transform();
@@ -328,6 +328,9 @@
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
                 
+                // Hien lai neu dang co o chon
+                if (o_dang_chon_id) update_view_transform();
+
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
                     let clientX, clientY;
@@ -356,7 +359,7 @@
 
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
-            const ghost = document.getElementById('quan_ao');
+            const activeBox = document.getElementById('o_active_container');
             
             const minH = parseInt(luoi.dataset.minH || -1);
             const minC = parseInt(luoi.dataset.minC || -1);
@@ -366,44 +369,43 @@
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
             
-            // CAP NHAT VI TRI GHOST (NEU DANG CO)
+            // RENDER ACTIVE BOX
             if (o_dang_chon_id) {
                 const [h, c] = o_dang_chon_id.split(',').map(Number);
                 const px = viewOffsetX + c * currentZoom;
                 const py = viewOffsetY + h * currentZoom;
                 
-                ghost.style.width = `${currentZoom}px`; ghost.style.height = `${currentZoom}px`;
-                ghost.style.left = `${px}px`; ghost.style.top = `${py}px`;
-                ghost.style.display = 'flex';
+                activeBox.style.width = `${currentZoom}px`; 
+                activeBox.style.height = `${currentZoom}px`;
+                activeBox.style.left = `${px}px`; 
+                activeBox.style.top = `${py}px`;
+                activeBox.style.display = 'flex'; // Flex de can giua chu
                 
-                // Set ky tu va mau sac cho Ghost
-                // Neu dang choi online thi dung my_role, solo thi dung luot_choi
-                const player_char = (room_id) ? my_role : luot_choi;
-                ghost.textContent = player_char;
-                ghost.className = (player_char === 'X') ? 'ghost-x' : 'ghost-o';
+                // Show Ghost Character
+                const char = (room_id) ? my_role : luot_choi;
+                activeBox.textContent = char;
+                activeBox.style.color = (char === 'X') ? '#ef4444' : '#3b82f6';
             } else {
-                ghost.style.display = 'none';
+                activeBox.style.display = 'none';
             }
         }
 
-        // --- XU LY LOGIC DANH 2 BUOC & SOLO ---
+        // --- XU LY 2 STEP CLICK ---
         function xu_ly_click_o_co(h, c) {
-            // Neu da co nguoi thang hoac la khan gia thi khong lam gi
             if (nguoi_thang || my_role === 'SPECTATOR') return; 
             
-            // Neu online va chua den luot thi cung khong lam gi
+            // ONLINE check turn
             if (room_id && luot_choi !== my_role) return;
 
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return; // O da co quan
 
-            // --- LOGIC 2 STEP ---
             if (o_dang_chon_id !== id) {
-                // BUOC 1: ACTIVE (HIEN GHOST)
+                // STEP 1: ACTIVE (Hien Ghost)
                 o_dang_chon_id = id;
                 update_view_transform(); 
             } else {
-                // BUOC 2: CONFIRM (DANH THAT)
+                // STEP 2: CONFIRM (Danh that)
                 o_dang_chon_id = null;
                 update_view_transform();
                 gui_nuoc_di(h, c);
@@ -467,7 +469,7 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
-                // Khi co nuoc di moi tu doi thu -> reset o dang chon cua minh de tranh nham lan
+                // RESET GHOST KHI CO NUOC DI MOI
                 o_dang_chon_id = null; 
                 
                 const chat_cu = lich_su_chat.length;
@@ -506,14 +508,10 @@
             }
 
             // --- ONLINE MODE ---
-            // Kiem tra lan cuoi
             if (luot_choi !== my_role) return;
-            
-            // Optimistic Update
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
             ve_ban_co(); 
-            
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
