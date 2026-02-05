@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Direct & Notify</title>
+    <title>XO Online - Final Button Fix</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -62,13 +62,9 @@
         #khung_ban_co { 
             flex: 1; position: relative; overflow: hidden; 
             background-color: #f8fafc; 
-            /* Mac dinh la grab (ban tay mo) */
-            cursor: grab; 
-            touch-action: none; 
+            cursor: grab; touch-action: none; 
         }
-        /* Class duoc them bang JS khi drag */
         .cursor-grabbing { cursor: grabbing !important; }
-        /* Class duoc them bang JS khi hover vao o trong */
         .cursor-pointer { cursor: pointer !important; }
 
         #luoi_co { 
@@ -252,8 +248,14 @@
                 user_id = auth.currentUser.uid;
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomParam = urlParams.get('room');
-                if (roomParam) { room_id = roomParam; is_host = false; my_role = 'O'; lang_nghe_phong(room_id); } 
-                else { document.getElementById('btn_tao_phong').textContent = "Tạo Phòng"; document.getElementById('btn_tao_phong').disabled = false; }
+                if (roomParam) { 
+                    room_id = roomParam; is_host = false; my_role = 'O'; lang_nghe_phong(room_id); 
+                } else {
+                    // FORCE ENABLE BUTTON IN SOLO MODE
+                    const btn = document.getElementById('btn_tao_phong');
+                    btn.textContent = "Tạo Phòng";
+                    btn.disabled = false;
+                }
             } catch (error) { console.error(error); alert("Lỗi kết nối Server! Vui lòng tải lại trang."); }
         }
 
@@ -292,7 +294,6 @@
                 isDragging = true; didMove = false; 
                 container.classList.add('cursor-grabbing');
                 container.classList.remove('cursor-pointer');
-                
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
             };
@@ -311,23 +312,24 @@
                     update_view_transform();
                     e.preventDefault();
                 } else {
-                    // HOVER LOGIC (CHO PC)
+                    // SMART CURSOR LOGIC (FOR PC)
                     const rect = container.getBoundingClientRect();
                     const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
                     const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
                     
                     if (!cac_nuoc_di[`${h},${c}`]) {
                         container.classList.add('cursor-pointer');
-                        container.style.cursor = 'pointer'; // Ngon tay
+                        container.style.cursor = 'pointer'; 
                     } else {
                         container.classList.remove('cursor-pointer');
-                        container.style.cursor = 'grab'; // Ban tay mo
+                        container.style.cursor = 'grab';
                     }
                 }
             };
 
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
+                
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
                     let clientX, clientY;
@@ -364,7 +366,7 @@
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
         }
 
-        // --- XU LY 1 CHAM (DIRECT CLICK) ---
+        // --- DIRECT CLICK (1 CHAM) ---
         function xu_ly_click_o_co(h, c) {
             if (nguoi_thang || my_role === 'SPECTATOR') return; 
             if (room_id && luot_choi !== my_role) return;
@@ -372,7 +374,6 @@
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return; 
             
-            // DANH LUON, KHONG CAN 2 BUOC
             gui_nuoc_di(h, c);
         }
 
@@ -402,33 +403,38 @@
         window.dong_modal = (id) => document.getElementById(id).style.display = 'none';
         window.copy_link = () => { navigator.clipboard.writeText(document.getElementById('link_phong').textContent); alert("Đã copy!"); }
 
-        // --- ROI PHONG LOGIC (UPDATE DB) ---
-        window.roi_phong = async function(manual_click = false) {
-            if (!room_id) return;
-            
-            if (manual_click) {
-                // Neu tu chu dong bam nut thoat
-                if (is_host) {
-                    // Host thoat -> Xoa phong
-                    try { await deleteDoc(doc(db, 'games', room_id)); } catch(e) {}
-                } else if (my_role === 'O') {
-                    // Guest thoat -> Update null
-                    try { await updateDoc(doc(db, 'games', room_id), { nguoi_tham_gia: null }); } catch(e) {}
-                }
-            }
-            
-            // Common cleanup
-            try { await updateDoc(doc(db, 'games', room_id), { view_count: increment(-1) }); } catch(e) {}
-            if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-            reset_local_state();
-        }
-        
+        // --- RESET LOGIC ---
         function reset_local_state() {
             room_id = null; is_host = false; my_role = 'X'; 
             cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; lich_su_chat = [];
             cap_nhat_ui(); ve_ban_co();
+            
+            // Clean URL
             const url = new URL(window.location); url.searchParams.delete('room'); window.history.pushState({}, '', url);
-            document.getElementById('khung_chat').style.display = 'none'; document.getElementById('nut_mo_chat').style.display = 'none';
+            
+            // Reset UI elements
+            document.getElementById('khung_chat').style.display = 'none'; 
+            document.getElementById('nut_mo_chat').style.display = 'none';
+            document.getElementById('modal_qr').style.display = 'none';
+            
+            // Re-enable Create Button
+            const btnCreate = document.getElementById('btn_tao_phong');
+            btnCreate.textContent = "Tạo Phòng";
+            btnCreate.disabled = false;
+            btnCreate.style.display = 'block';
+        }
+
+        window.roi_phong = async function(manual_click = false) {
+            if (!room_id) return;
+            
+            if (manual_click) {
+                if (is_host) { try { await deleteDoc(doc(db, 'games', room_id)); } catch(e) {} } 
+                else if (my_role === 'O') { try { await updateDoc(doc(db, 'games', room_id), { nguoi_tham_gia: null }); } catch(e) {} }
+            }
+            
+            try { await updateDoc(doc(db, 'games', room_id), { view_count: increment(-1) }); } catch(e) {}
+            if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+            reset_local_state();
         }
 
         function lang_nghe_phong(id) {
@@ -436,20 +442,17 @@
             unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
                 // LOGIC DOI THU THOAT
                 if (!docSnap.exists()) { 
-                    alert("Phòng đã bị giải tán (Chủ phòng thoát)!"); 
+                    alert("Phòng đã bị giải tán!"); 
                     reset_local_state();
                     return; 
                 }
                 const data = docSnap.data();
                 
-                // Neu minh la X, ma O tu dung bien mat (data.nguoi_tham_gia == null) trong khi truoc do da co
-                // O day don gian hoa: neu minh la X va nguoi tham gia bi null thi tuc la chua co ai hoac da thoat
-                // De don gian: neu dang choi ma doi thu thoat -> Thong bao va reset
-                // Tuy nhien, can flag de biet la "da tung co nguoi choi"
-                
+                // Neu minh la chu phong, da tung co nguoi choi, gio lai khong co -> Doi thu thoat
                 if (is_host && !data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'none') {
-                     // Da tung vao choi (modal an) gio lai null -> Doi thu thoat
-                     alert("Đối thủ đã thoát!");
+                     alert("Đối thủ đã thoát! Bạn có thể tạo phòng mới.");
+                     // Tu dong xoa phong cu de tao moi truong sach
+                     deleteDoc(doc(db, 'games', id));
                      reset_local_state();
                      return;
                 }
@@ -578,10 +581,8 @@
                 // ONLINE
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
-                // FIX VIEW COUNT: TONG - NGUOI CHOI THUC TE
-                let display_views = Math.max(0, so_nguoi_xem - (my_role === 'SPECTATOR' ? 2 : 1)); 
-                // Don gian hoa: cu tru 2
-                display_views = Math.max(0, so_nguoi_xem - 2);
+                // FIX VIEW COUNT: TONG - 2 (nhung khong am)
+                let display_views = Math.max(0, so_nguoi_xem - 2);
                 mat_xem.innerHTML = `👁️ ${display_views}`;
                 
                 btn_lobby.style.display = 'none';
