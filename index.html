@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Fixed Grid</title>
+    <title>XO Online - 2 Step & Solo</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -43,7 +43,6 @@
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
         .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.7rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; white-space: nowrap; }
-        .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; }
         
         @keyframes pulse { 50% { opacity: .5; } }
 
@@ -62,19 +61,15 @@
             flex: 1; position: relative; overflow: hidden; 
             background-color: #f8fafc; 
             cursor: grab; touch-action: none; 
-            /* BO HINH NEN CHAM DE TRANH LECH LAC */
         }
         .cursor-grabbing { cursor: grabbing !important; }
 
         #luoi_co { 
             position: absolute; display: grid; 
             background-color: transparent; 
-            /* QUAN TRONG: Gap = 0 de tinh toan chinh xac */
             gap: 0; 
-            /* Border phia tren va trai cua toan bo luoi */
             border-top: 1px solid var(--grid-line);
             border-left: 1px solid var(--grid-line);
-            
             grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
@@ -85,42 +80,37 @@
             background-color: var(--paper-bg); 
             display: flex; justify-content: center; align-items: center; 
             font-weight: bold; position: relative; 
-            
-            /* Box sizing border-box de kich thuoc 40px da bao gom ca border */
-            width: var(--cell-size); 
-            height: var(--cell-size); 
-            box-sizing: border-box;
-            
-            font-size: var(--font-size); 
-            pointer-events: none; 
-            
-            /* Border phai va duoi cua tung o */
+            width: var(--cell-size); height: var(--cell-size); box-sizing: border-box;
+            font-size: var(--font-size); pointer-events: none; 
             border-right: 1px solid var(--grid-line);
             border-bottom: 1px solid var(--grid-line);
         }
         
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         
-        /* Highlight nuoc vua danh */
-        .o_vua_danh::after { 
-            content: ''; position: absolute; inset: 0; 
-            background-color: rgba(56, 189, 248, 0.2); 
-        }
+        .o_vua_danh::after { content: ''; position: absolute; inset: 0; background-color: rgba(56, 189, 248, 0.2); }
         
         .o_co.o_thang { z-index: 100; }
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        /* --- HIGHLIGHTER (CON TRO ACTIVE) --- */
-        #con_tro_active {
+        /* --- HIGHLIGHTERS --- */
+        /* Con tro chuot (Hover) */
+        #con_tro_hover {
             position: absolute;
-            background-color: rgba(14, 165, 233, 0.3); /* Xanh nhat */
-            border: 2px solid #0ea5e9;
-            box-sizing: border-box; /* Quan trong de khop voi o co */
-            z-index: 5;
-            pointer-events: none;
-            display: none;
+            background-color: rgba(14, 165, 233, 0.1);
+            border: 1px dashed #cbd5e1;
+            box-sizing: border-box; z-index: 5; pointer-events: none; display: none;
         }
+        /* O dang chon (Active - Click lan 1) */
+        #o_dang_chon {
+            position: absolute;
+            background-color: rgba(34, 197, 94, 0.2); /* Xanh la nhat */
+            border: 2px solid #22c55e; /* Vien xanh la dam */
+            box-sizing: border-box; z-index: 6; pointer-events: none; display: none;
+            animation: pulse-border 1s infinite;
+        }
+        @keyframes pulse-border { 50% { border-color: #86efac; } }
 
         /* --- CHAT & UI --- */
         #nut_mo_chat { position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background-color: #2563eb; color: white; display: none; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: 30; border: none; }
@@ -164,10 +154,8 @@
         
         <div class="bang_dieu_khien">
             <span id="mat_xem" class="eye-count" style="display:none;">👁️ 0</span>
-            
             <button id="btn_lobby" onclick="mo_lobby()" class="btn-success">Danh Sách</button>
             <button id="btn_roi_phong" onclick="roi_phong()" class="btn-danger" style="display:none;">Thoát</button>
-            
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại</button>
             <button id="btn_choi_lai" onclick="kich_hoat_choi_lai()" class="btn-primary" style="display:none;">Ván Mới</button>
             <button id="btn_tao_phong" onclick="tao_phong_moi()" class="btn-primary" disabled>Tạo Phòng</button>
@@ -176,7 +164,8 @@
 
     <div id="khung_ban_co">
         <div id="luoi_co"></div>
-        <div id="con_tro_active"></div>
+        <div id="con_tro_hover"></div>
+        <div id="o_dang_chon"></div>
     </div>
 
     <button id="nut_mo_chat" onclick="bat_tat_chat()">💬<div id="thong_bao_tin_moi">!</div></button>
@@ -248,6 +237,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -258,10 +248,12 @@
         document.body.addEventListener('touchstart', unlock_audio, { once: true });
         function playSound(type) { if (!audioEnabled) return; try { if (type === 'join') { sndJoin.currentTime=0; sndJoin.play().catch(e=>{}); } if (type === 'chat') { sndChat.currentTime=0; sndChat.play().catch(e=>{}); } } catch(e) {} }
 
+        // VARS
         let user_id = null, room_id = null, is_host = false, my_role = 'X', unsubscribe = null;
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
+        let o_dang_chon_id = null; // BIEN LUU O DANG ACTIVE
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
         async function init() {
@@ -306,7 +298,8 @@
 
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
-            const highlight = document.getElementById('con_tro_active');
+            const hoverBox = document.getElementById('con_tro_hover');
+            
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
 
             const onPointerDown = (e) => {
@@ -315,7 +308,7 @@
                 isDragging = true; didMove = false; container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
-                highlight.style.display = 'none';
+                hoverBox.style.display = 'none'; 
             };
 
             const onPointerMove = (e) => {
@@ -332,19 +325,16 @@
                     update_view_transform();
                     e.preventDefault();
                 } else {
-                    // --- HIGHLIGHTER CALCULATION ---
+                    // --- HOVER CALCULATION ---
                     const rect = container.getBoundingClientRect();
                     const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
                     const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
-                    
                     const px = viewOffsetX + c * currentZoom;
                     const py = viewOffsetY + h * currentZoom;
                     
-                    highlight.style.width = `${currentZoom}px`;
-                    highlight.style.height = `${currentZoom}px`;
-                    highlight.style.left = `${px}px`;
-                    highlight.style.top = `${py}px`;
-                    highlight.style.display = 'block';
+                    hoverBox.style.width = `${currentZoom}px`; hoverBox.style.height = `${currentZoom}px`;
+                    hoverBox.style.left = `${px}px`; hoverBox.style.top = `${py}px`;
+                    hoverBox.style.display = 'block';
 
                     if (!cac_nuoc_di[`${h},${c}`]) container.style.cursor = 'pointer'; 
                     else container.style.cursor = 'grab';
@@ -353,7 +343,7 @@
 
             const onPointerUp = (e) => {
                 isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
-                highlight.style.display = 'block';
+                hoverBox.style.display = 'block';
                 if (!container.contains(e.target)) return;
                 if (!didMove) {
                     let clientX, clientY;
@@ -365,7 +355,7 @@
                 }
             };
             
-            container.addEventListener('mouseleave', () => { highlight.style.display = 'none'; });
+            container.addEventListener('mouseleave', () => { hoverBox.style.display = 'none'; });
             container.addEventListener('mousedown', onPointerDown); window.addEventListener('mousemove', onPointerMove); window.addEventListener('mouseup', onPointerUp);
             container.addEventListener('touchstart', onPointerDown, { passive: false }); container.addEventListener('touchmove', onPointerMove, { passive: false }); container.addEventListener('touchend', onPointerUp);
             container.addEventListener('wheel', (e) => { e.preventDefault(); updateZoom(Math.sign(e.deltaY) * -5); }, { passive: false });
@@ -383,21 +373,49 @@
 
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
-            const highlight = document.getElementById('con_tro_active');
+            const hoverBox = document.getElementById('con_tro_hover');
+            const activeBox = document.getElementById('o_dang_chon');
+            
             const minH = parseInt(luoi.dataset.minH || -1);
             const minC = parseInt(luoi.dataset.minC || -1);
             luoi.style.left = `${viewOffsetX + minC * currentZoom}px`;
             luoi.style.top = `${viewOffsetY + minH * currentZoom}px`;
+            
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
-            highlight.style.display = 'none';
+            
+            hoverBox.style.display = 'none';
+            // Cap nhat lai vi tri cua o dang chon neu dang co
+            if (o_dang_chon_id) {
+                const [h, c] = o_dang_chon_id.split(',').map(Number);
+                const px = viewOffsetX + c * currentZoom;
+                const py = viewOffsetY + h * currentZoom;
+                activeBox.style.width = `${currentZoom}px`; activeBox.style.height = `${currentZoom}px`;
+                activeBox.style.left = `${px}px`; activeBox.style.top = `${py}px`;
+                activeBox.style.display = 'block';
+            } else {
+                activeBox.style.display = 'none';
+            }
         }
 
+        // --- XU LY 2 STEP CLICK & SOLO LOGIC ---
         function xu_ly_click_o_co(h, c) {
             if (nguoi_thang || my_role === 'SPECTATOR') return; 
+            
             const id = `${h},${c}`;
-            if (cac_nuoc_di[id]) return;
-            gui_nuoc_di(h, c);
+            if (cac_nuoc_di[id]) return; // O da co quan
+
+            // LOGIC CLICK 2 BUOC
+            if (o_dang_chon_id !== id) {
+                // Buoc 1: Chon (Active)
+                o_dang_chon_id = id;
+                update_view_transform(); // De ve lai o active
+            } else {
+                // Buoc 2: Xac nhan danh
+                o_dang_chon_id = null; // Reset
+                update_view_transform(); // An o active
+                gui_nuoc_di(h, c);
+            }
         }
 
         window.tao_phong_moi = async function() {
@@ -432,6 +450,7 @@
             if (unsubscribe) { unsubscribe(); unsubscribe = null; }
             room_id = null; is_host = false; my_role = 'X'; 
             cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; lich_su_chat = [];
+            o_dang_chon_id = null; // Reset selection
             cap_nhat_ui(); ve_ban_co();
             const url = new URL(window.location); url.searchParams.delete('room'); window.history.pushState({}, '', url);
             document.getElementById('khung_chat').style.display = 'none'; document.getElementById('nut_mo_chat').style.display = 'none';
@@ -479,6 +498,19 @@
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
+            
+            // --- OFFLINE / SOLO MODE ---
+            if (!room_id) {
+                cac_nuoc_di[id] = luot_choi;
+                nuoc_di_cuoi = id;
+                const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
+                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
+                else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
+                ve_ban_co(); cap_nhat_ui();
+                return;
+            }
+
+            // --- ONLINE MODE ---
             if (luot_choi !== my_role) return;
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
@@ -550,6 +582,7 @@
             const btn_create = document.getElementById('btn_tao_phong');
             
             if (room_id) {
+                // ONLINE
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
                 let display_views = Math.max(0, so_nguoi_xem - 2);
@@ -559,6 +592,7 @@
                 btn_create.style.display = 'none';
                 btn_leave.style.display = 'block'; 
             } else {
+                // OFFLINE
                 btn_lobby.style.display = 'block';
                 btn_create.style.display = 'block';
                 btn_leave.style.display = 'none';
@@ -584,10 +618,19 @@
                         btn_undo.disabled = !canUndo;
                         if (document.getElementById('btn_undo').textContent === "Đang xin...") btn_undo.disabled = true;
                     }
+                } else {
+                    // OFFLINE STATUS
+                    html += ` (Solo)`;
+                    btn_undo.style.display = 'block';
+                    btn_undo.textContent = "Chơi lại";
+                    btn_undo.onclick = () => window.location.reload(); // Undo offline reset don gian
+                    btn_replay.style.display = 'block';
+                    btn_replay.textContent = "Ván Mới";
                 }
                 div.innerHTML = html;
-                if ((is_host || !room_id) && my_role !== 'SPECTATOR') { btn_replay.style.display = 'block'; btn_replay.textContent = "Ván Mới"; btn_replay.className = "btn-danger"; } 
-                else btn_replay.style.display = 'none';
+                
+                // Replay button logic for offline/online
+                if (!nguoi_thang && !room_id) btn_replay.style.display = 'block';
             }
         }
 
@@ -620,7 +663,18 @@
         window.xu_ly_enter = (e) => { if(e.key === 'Enter') gui_tin_nhan(); }
         window.gui_yeu_cau_undo = async () => { if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return; if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; } document.getElementById('btn_undo').textContent = "Đang xin..."; document.getElementById('btn_undo').disabled = true; await updateDoc(doc(db, 'games', room_id), { undo_request: { requester: my_role, status: 'pending' } }); }
         window.xu_ly_phan_hoi_undo = async (dong_y) => { document.getElementById('modal_confirm_undo').style.display = 'none'; if (!dong_y) await updateDoc(doc(db, 'games', room_id), { 'undo_request.status': 'rejected' }); else { const snap = await getDoc(doc(db, 'games', room_id)); const data = snap.data(); const hist = data.lich_su_nuoc_di; const last = hist.pop(); delete data.cac_nuoc_di[last.id]; const prev = hist.length ? hist[hist.length-1].id : null; data.so_lan_undo[last.player]--; await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, nuoc_di_cuoi: prev, luot_choi: last.player, nguoi_thang: null, hang_thang: [], so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' } }); } }
-        window.kich_hoat_choi_lai = async () => { if (!nguoi_thang && Object.keys(cac_nuoc_di).length > 0) if (!confirm("Ván chưa kết thúc. Tạo mới?")) return; await xu_ly_choi_lai(); }
+        window.kich_hoat_choi_lai = async () => { 
+            // Offline replay
+            if (!room_id) {
+                if (Object.keys(cac_nuoc_di).length > 0 && !confirm("Ván chưa kết thúc. Tạo mới?")) return;
+                cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
+                ve_ban_co(); cap_nhat_ui();
+                return;
+            }
+            // Online replay
+            if (!nguoi_thang && Object.keys(cac_nuoc_di).length > 0) if (!confirm("Ván chưa kết thúc. Tạo mới?")) return; 
+            await xu_ly_choi_lai(); 
+        }
         window.xu_ly_choi_lai = async () => { let next = nguoi_thang ? (nguoi_thang === 'X' ? 'O' : 'X') : 'X'; if (room_id) await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: next, nguoi_thang: null, hang_thang: [], nuoc_di_cuoi: null, so_lan_undo: {X:3, O:3}, undo_request: null }); else { cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = next; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; so_lan_undo = {X:3, O:3}; cap_nhat_ui(); ve_ban_co(); } }
 
         init();
