@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Team Suggestion</title>
+    <title>XO Online - Mobile Fix</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -23,6 +23,8 @@
             height: 100vh; height: 100dvh; 
             display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
+            /* QUAN TRONG: Ngan chan hanh vi mac dinh cua trinh duyet (scroll/zoom native) */
+            touch-action: none; 
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -43,7 +45,7 @@
         .xanh { background-color: #3b82f6; color: white; }
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
-        .tim { background-color: #8b5cf6; color: white; } /* Mau Team Mode */
+        .tim { background-color: #8b5cf6; color: white; }
         
         .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.7rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; white-space: nowrap; }
         .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; }
@@ -61,7 +63,6 @@
 
         .eye-count { color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; }
         
-        /* Icon bong den */
         #icon_team { display: none; font-size: 1.1rem; animation: bounce 2s infinite; margin-left:5px; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
@@ -83,7 +84,7 @@
             grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            transition: left 0.1s, top 0.1s;
+            transition: left 0.05s, top 0.05s; /* Giam thoi gian transition de drag muot hon */
         }
 
         .o_co { 
@@ -102,29 +103,20 @@
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
 
-        /* --- GOI Y (SUGGESTION) STYLE --- */
-        .o_goi_y {
-            background-color: rgba(139, 92, 246, 0.15) !important; /* Tim nhat */
-        }
+        .o_goi_y { background-color: rgba(139, 92, 246, 0.15) !important; }
         .badge_goi_y {
             position: absolute; top: 2px; right: 2px;
             background: #7c3aed; color: white;
             font-size: 0.6rem; width: 14px; height: 14px;
-            border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
             z-index: 5; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
-        /* --- ACTIVE BORDER (HIGHLIGHT) --- */
         #active_border {
-            position: absolute;
-            width: var(--cell-size); height: var(--cell-size);
-            box-sizing: border-box;
-            z-index: 10; pointer-events: none;
-            border: 2px solid #3b82f6; 
-            background-color: rgba(59, 130, 246, 0.1); 
-            display: none; 
-            animation: pulse-border 1.5s infinite;
+            position: absolute; width: var(--cell-size); height: var(--cell-size);
+            box-sizing: border-box; z-index: 10; pointer-events: none;
+            border: 2px solid #3b82f6; background-color: rgba(59, 130, 246, 0.1); 
+            display: none; animation: pulse-border 1.5s infinite;
         }
         @keyframes pulse-border { 50% { border-color: #60a5fa; background-color: rgba(59, 130, 246, 0.2); } }
 
@@ -170,9 +162,7 @@
         
         <div class="bang_dieu_khien">
             <span id="mat_xem" class="eye-count" style="display:none;">👁️ 0</span>
-            
             <button id="btn_toggle_team" onclick="bat_tat_team_mode()" class="btn-team" style="display:none;">Bật Gợi Ý</button>
-            
             <button id="btn_lobby" onclick="mo_lobby()" class="btn-success">Danh Sách</button>
             <button id="btn_roi_phong" onclick="roi_phong(true)" class="btn-danger" style="display:none;">Thoát</button>
             <button id="btn_undo" onclick="gui_yeu_cau_undo()" class="btn-warning" style="display:none;" disabled>Xin lại</button>
@@ -272,9 +262,8 @@
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
         
-        // --- TEAM MODE VARS ---
         let team_mode = false; 
-        let cac_goi_y = {}; // Format: { "userID": "h,c", "userID2": "h,c" }
+        let cac_goi_y = {}; 
 
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
@@ -324,32 +313,54 @@
             } catch (e) { console.error(e); listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Chưa có dữ liệu.</div>'; }
         }
 
+        // --- INTERACTION ---
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
             const highlight = document.getElementById('active_border');
+            
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
+            let wasPinching = false; // Flag de tranh click nham sau khi zoom
 
             const onPointerDown = (e) => {
                 if (document.querySelector('.modal_overlay[style*="display: flex"]')) return;
-                if (e.touches && e.touches.length === 2) { isDragging = false; initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); return; }
+                
+                // MULTI-TOUCH (ZOOM)
+                if (e.touches && e.touches.length === 2) { 
+                    isDragging = false; 
+                    wasPinching = true; 
+                    initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                    highlight.style.display = 'none';
+                    return; 
+                }
+                
                 isDragging = true; didMove = false; 
+                // Set cursor style
+                container.classList.remove('cursor-pointer', 'cursor-grab');
                 container.classList.add('cursor-grabbing');
-                container.classList.remove('cursor-pointer');
                 
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
                 startX = pageX; startY = pageY;
-                highlight.style.display = 'none'; // An highlight khi drag
+                highlight.style.display = 'none';
             };
 
             const onPointerMove = (e) => {
                 const pageX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
                 const pageY = e.pageY || (e.touches ? e.touches[0].pageY : 0);
 
-                if (e.touches && e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); if (initialPinchDist > 0) updateZoom((dist - initialPinchDist) * 0.2); initialPinchDist = dist; return; }
+                // ZOOM HANDLING
+                if (e.touches && e.touches.length === 2) { 
+                    e.preventDefault(); 
+                    const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+                    if (initialPinchDist > 0) updateZoom((dist - initialPinchDist) * 0.2); 
+                    initialPinchDist = dist; 
+                    return; 
+                }
                 
+                // DRAG HANDLING
                 if (isDragging) {
                     const dx = pageX - startX; const dy = pageY - startY;
-                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) didMove = true;
+                    // NGUONG RUNG TAY 10px
+                    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) didMove = true;
                     viewOffsetX += dx; viewOffsetY += dy;
                     startX = pageX; startY = pageY;
                     update_view_transform();
@@ -361,21 +372,32 @@
                     const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
                     
                     if (!cac_nuoc_di[`${h},${c}`]) {
-                        container.classList.add('cursor-pointer'); // Ngon tay
-                        container.style.cursor = 'pointer'; 
+                        container.classList.remove('cursor-grab', 'cursor-grabbing');
+                        container.classList.add('cursor-pointer'); 
+                        container.style.cursor = 'pointer';
                     } else {
-                        container.classList.remove('cursor-pointer');
-                        container.style.cursor = 'grab'; // Ban tay
+                        container.classList.remove('cursor-pointer', 'cursor-grabbing');
+                        container.classList.add('cursor-grab'); 
+                        container.style.cursor = 'grab';
                     }
                 }
             };
 
             const onPointerUp = (e) => {
-                isDragging = false; container.classList.remove('cursor-grabbing'); container.style.cursor = 'grab';
-                
-                highlight.style.display = 'none';
+                isDragging = false; 
+                container.classList.remove('cursor-grabbing');
+                container.classList.add('cursor-grab'); 
+                container.style.cursor = 'grab';
+
+                // SAFETY CHECK FOR ZOOM
+                if (wasPinching) {
+                    if (!e.touches || e.touches.length === 0) wasPinching = false; 
+                    return; 
+                }
 
                 if (!container.contains(e.target)) return;
+                
+                // CLICK LOGIC (CHUA DRAG)
                 if (!didMove) {
                     let clientX, clientY;
                     if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; }
@@ -411,11 +433,12 @@
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
         }
 
+        // --- XU LY CLICK ---
         function xu_ly_click_o_co(h, c) {
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return; 
             
-            // --- SPECTATOR SUGGESTION LOGIC ---
+            // --- SPECTATOR SUGGESTION ---
             if (my_role === 'SPECTATOR') {
                 if (team_mode) gui_goi_y(id);
                 return;
@@ -490,7 +513,7 @@
                 }
                 const data = docSnap.data();
                 
-                // LOGIC XOA PHONG KHI CA 2 NULL
+                // LOGIC XOA PHONG
                 if (data.nguoi_tao === null && data.nguoi_tham_gia === null) {
                     deleteDoc(doc(db, 'games', id)); return;
                 }
@@ -521,7 +544,6 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
-                // TEAM MODE
                 team_mode = data.team_mode || false;
                 cac_goi_y = data.cac_goi_y || {};
                 
@@ -546,7 +568,6 @@
              else if (req.requester !== my_role) document.getElementById('modal_confirm_undo').style.display = 'none';
         }
 
-        // --- TEAM MODE LOGIC ---
         window.bat_tat_team_mode = async function() {
             if (!is_host) return;
             const new_status = !team_mode;
@@ -554,32 +575,24 @@
         }
 
         async function gui_goi_y(id) {
-            // Cap nhat goi y cua user nay
-            // Map { "user_id": "h,c" } -> 1 nguoi 1 phieu
             await updateDoc(doc(db, 'games', room_id), { [`cac_goi_y.${user_id}`]: id });
         }
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
-            
-            // SOLO
             if (!room_id) {
                 cac_nuoc_di[id] = luot_choi;
                 nuoc_di_cuoi = id;
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
                 if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
                 else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
-                ve_ban_co(); cap_nhat_ui();
-                return;
+                ve_ban_co(); cap_nhat_ui(); return;
             }
-
-            // ONLINE
             if (luot_choi !== my_role) return;
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
             ve_ban_co(); 
             
-            // RESET SUGGESTIONS WHEN MOVE MADE
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
@@ -588,7 +601,7 @@
                 hang_thang: thang || [],
                 nuoc_di_cuoi: id,
                 undo_request: null,
-                cac_goi_y: {}, // Clear suggestions
+                cac_goi_y: {}, // CLEAR SUGGESTION
                 last_active: Date.now() 
             });
         }
@@ -624,8 +637,7 @@
             luoi.style.gridTemplateRows = `repeat(${rows}, auto)`;
             luoi.innerHTML = '';
             
-            // AGGREGATE SUGGESTIONS
-            // Map: { "h,c": count }
+            // COUNT SUGGESTIONS
             let suggest_counts = {};
             if (team_mode) {
                 Object.values(cac_goi_y).forEach(coord => {
@@ -642,7 +654,6 @@
                     if (id === nuoc_di_cuoi) div.classList.add('o_vua_danh');
                     if (hang_thang.includes(id)) div.classList.add('o_thang');
                     
-                    // RENDER SUGGESTION BADGE
                     if (suggest_counts[id] && !cac_nuoc_di[id]) {
                         div.classList.add('o_goi_y');
                         const badge = document.createElement('div');
@@ -673,7 +684,6 @@
             btn_team.textContent = team_mode ? "Tắt Gợi Ý" : "Bật Gợi Ý";
             
             if (room_id) {
-                // ONLINE
                 if (!is_chat_open) btn_chat.style.display = 'flex';
                 mat_xem.style.display = 'flex';
                 let display_views = Math.max(0, so_nguoi_xem - 2);
@@ -681,14 +691,10 @@
                 
                 btn_lobby.style.display = 'none';
                 btn_create.style.display = 'none';
-                btn_leave.style.display = 'block'; 
-                
-                // Show Team Button only for HOST
-                if (is_host) btn_team.style.display = 'block';
-                else btn_team.style.display = 'none';
+                btn_leave.style.display = 'block';
+                if (is_host) btn_team.style.display = 'block'; else btn_team.style.display = 'none';
                 
             } else {
-                // OFFLINE
                 btn_lobby.style.display = 'block';
                 btn_create.style.display = 'block';
                 btn_leave.style.display = 'none';
