@@ -3,136 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Sync Fixed</title>
+    <title>XO Online - Final Sync Fix</title>
     <style>
-        /* --- CSS BIEN --- */
-        :root { 
-            --cell-size: 40px; 
-            --font-size: 20px;
-            --paper-bg: #ffffff;
-            --grid-line: #cbd5e1;
-            --text-color: #1e293b;
-        }
-
-        /* --- CSS CO BAN --- */
-        body { 
-            margin: 0; padding: 0; 
-            background-color: #f1f5f9;
-            color: var(--text-color); 
-            font-family: ui-sans-serif, system-ui, sans-serif; 
-            height: 100vh; height: 100dvh; 
-            display: flex; flex-direction: column; 
-            overflow: hidden; user-select: none; 
-            -webkit-tap-highlight-color: transparent;
-            touch-action: none;
-        }
-
-        /* --- HEADER UI --- */
-        #thong_tin { 
-            flex: 0 0 auto; padding: 0.5rem; 
-            background-color: #1e293b; color: #f1f5f9;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-            z-index: 20; display: flex; flex-wrap: wrap; 
-            justify-content: space-between; align-items: center; gap: 8px; 
-        }
+        /* --- GIỮ NGUYÊN CSS CŨ --- */
+        :root { --cell-size: 40px; --font-size: 20px; --paper-bg: #ffffff; --grid-line: #cbd5e1; --text-color: #1e293b; }
+        body { margin: 0; padding: 0; background-color: #f1f5f9; color: var(--text-color); font-family: ui-sans-serif, system-ui, sans-serif; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+        #thong_tin { flex: 0 0 auto; padding: 0.5rem; background-color: #1e293b; color: #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 20; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
         .left-info { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
-        h1 { margin: 0; font-size: 1rem; font-weight: bold; color: #facc15; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+        h1 { margin: 0; font-size: 1rem; font-weight: bold; color: #facc15; white-space: nowrap; }
         
-        /* STATUS LIGHT */
-        #status_light {
-            width: 12px; height: 12px; border-radius: 50%;
-            background-color: #ef4444; /* Default Red */
-            box-shadow: 0 0 8px currentColor;
-            transition: background-color 0.3s;
-        }
-        .status-connecting { background-color: #eab308 !important; box-shadow: 0 0 8px #eab308; }
-        .status-online { background-color: #22c55e !important; box-shadow: 0 0 8px #22c55e; }
+        /* ĐÈN TÍN HIỆU KẾT NỐI */
+        #status_dot { width: 10px; height: 10px; border-radius: 50%; background-color: #9ca3af; display: inline-block; margin-right: 5px; box-shadow: 0 0 5px currentColor; transition: all 0.3s; }
+        .dot-online { background-color: #22c55e !important; box-shadow: 0 0 8px #22c55e !important; } /* Xanh lá */
+        .dot-offline { background-color: #ef4444 !important; } /* Đỏ */
+        .dot-connecting { background-color: #eab308 !important; animation: blink 1s infinite; } /* Vàng */
+        @keyframes blink { 50% { opacity: 0.5; } }
 
         .bang_dieu_khien { display: flex; gap: 5px; align-items: center; overflow-x: auto; max-width: 100%; padding-bottom: 2px; }
         .bang_dieu_khien::-webkit-scrollbar { display: none; }
-
         .luot_choi_hien_thi { padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; white-space: nowrap; }
         .xanh { background-color: #3b82f6; color: white; }
         .do { background-color: #ef4444; color: white; }
         .vang { background-color: #facc15; color: black; }
-        .tim { background-color: #8b5cf6; color: white; } 
-        
+        .tim { background-color: #8b5cf6; color: white; }
         .den-luot-ban { color: #4ade80; font-weight: bold; font-size: 0.7rem; animation: pulse 2s infinite; display: inline-block; margin-left: 5px; white-space: nowrap; }
         .spectator-badge { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap; }
-        
         @keyframes pulse { 50% { opacity: .5; } }
-
         button { background-color: #334155; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; white-space: nowrap; }
         button:hover { background-color: #475569; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background-color: #2563eb; }
-        .btn-warning { background-color: #d97706; }
-        .btn-danger { background-color: #dc2626; }
-        .btn-success { background-color: #16a34a; }
-        .btn-team { background-color: #7c3aed; }
-        .btn-team-active { background-color: #c026d3; box-shadow: 0 0 5px #e879f9; }
-
+        .btn-primary { background-color: #2563eb; } .btn-warning { background-color: #d97706; } .btn-danger { background-color: #dc2626; } .btn-success { background-color: #16a34a; } .btn-team { background-color: #7c3aed; }
         .eye-count { color: #94a3b8; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; }
-        
         #icon_team { display: none; font-size: 1.1rem; animation: bounce 2s infinite; margin-left:5px; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-
-        /* --- KHUNG BAN CO --- */
-        #khung_ban_co { 
-            flex: 1; position: relative; overflow: hidden; 
-            background-color: #f8fafc; 
-            cursor: grab; touch-action: none; 
-        }
-        .cursor-grabbing { cursor: grabbing !important; }
-        .cursor-pointer { cursor: pointer !important; }
-
-        #luoi_co { 
-            position: absolute; display: grid; 
-            background-color: transparent; 
-            gap: 0; 
-            border-top: 1px solid var(--grid-line);
-            border-left: 1px solid var(--grid-line);
-            grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
-            pointer-events: none; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            transition: left 0.05s, top 0.05s;
-        }
-
-        .o_co { 
-            background-color: var(--paper-bg); 
-            display: flex; justify-content: center; align-items: center; 
-            font-weight: bold; position: relative; 
-            width: var(--cell-size); height: var(--cell-size); box-sizing: border-box;
-            font-size: var(--font-size); pointer-events: none; 
-            border-right: 1px solid var(--grid-line);
-            border-bottom: 1px solid var(--grid-line);
-        }
-        
+        #khung_ban_co { flex: 1; position: relative; overflow: hidden; background-color: #f8fafc; cursor: grab; touch-action: none; }
+        .cursor-grabbing { cursor: grabbing !important; } .cursor-pointer { cursor: pointer !important; }
+        #luoi_co { position: absolute; display: grid; background-color: transparent; gap: 0; border-top: 1px solid var(--grid-line); border-left: 1px solid var(--grid-line); grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); pointer-events: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transition: left 0.05s, top 0.05s; }
+        .o_co { background-color: var(--paper-bg); display: flex; justify-content: center; align-items: center; font-weight: bold; position: relative; width: var(--cell-size); height: var(--cell-size); box-sizing: border-box; font-size: var(--font-size); pointer-events: none; border-right: 1px solid var(--grid-line); border-bottom: 1px solid var(--grid-line); }
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
         .o_vua_danh::after { content: ''; position: absolute; inset: 0; background-color: rgba(56, 189, 248, 0.2); }
         .o_co.o_thang { z-index: 100; }
         .o_co.o_thang::before { content: ''; position: absolute; inset: 0; background-color: #fef08a; z-index: -1; box-shadow: 0 0 15px #facc15; animation: thang_cuoc 0.5s infinite alternate; }
         @keyframes thang_cuoc { from { transform: scale(1); } to { transform: scale(1.15); } }
-
         .o_goi_y { background-color: rgba(192, 38, 211, 0.15) !important; }
         .o_my_suggest { border: 2px dashed #c026d3 !important; background-color: rgba(192, 38, 211, 0.05); }
-        .badge_goi_y {
-            position: absolute; top: 2px; right: 2px;
-            background: #c026d3; color: white;
-            font-size: 0.6rem; width: 14px; height: 14px;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            z-index: 5; box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-
-        #active_border {
-            position: absolute; width: var(--cell-size); height: var(--cell-size);
-            box-sizing: border-box; z-index: 10; pointer-events: none;
-            border: 2px solid #3b82f6; background-color: rgba(59, 130, 246, 0.1); 
-            display: none; animation: pulse-border 1.5s infinite;
-        }
+        .badge_goi_y { position: absolute; top: 2px; right: 2px; background: #c026d3; color: white; font-size: 0.6rem; width: 14px; height: 14px; border-radius: 50%; display: flex; justify-content: center; align-items: center; z-index: 5; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        #active_border { position: absolute; width: var(--cell-size); height: var(--cell-size); box-sizing: border-box; z-index: 10; pointer-events: none; border: 2px solid #3b82f6; background-color: rgba(59, 130, 246, 0.1); display: none; animation: pulse-border 1.5s infinite; }
         @keyframes pulse-border { 50% { border-color: #60a5fa; background-color: rgba(59, 130, 246, 0.2); } }
-
-        /* --- CHAT & UI --- */
         #nut_mo_chat { position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background-color: #2563eb; color: white; display: none; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: 30; border: none; }
         #thong_bao_tin_moi { position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: none; justify-content: center; align-items: center; }
         #khung_chat { position: fixed; bottom: 80px; right: 20px; width: 300px; height: 400px; background-color: #1e293b; color: white; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: none; flex-direction: column; z-index: 31; border: 1px solid #334155; max-width: 85vw; }
@@ -144,8 +61,6 @@
         .tin-ban { align-self: flex-end; background-color: #2563eb; color: white; }
         .tin-doi-thu { align-self: flex-start; background-color: #334155; color: #f1f5f9; }
         .chat-role { font-size: 0.7rem; opacity: 0.7; margin-bottom: 2px; }
-
-        /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
         .modal_content { background: #1e293b; color: white; padding: 1.5rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
         .qr_image { background: white; padding: 8px; border-radius: 4px; margin: 1rem 0; width: 180px; height: 180px; }
@@ -158,7 +73,6 @@
         .room-status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
         .status-wait { background: #16a34a; color: white; }
         .status-full { background: #ef4444; color: white; }
-        
         #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; }
     </style>
 </head>
@@ -166,9 +80,9 @@
 
     <div id="thong_tin">
         <div class="left-info">
-            <h1><span id="status_light"></span> XO Online <span id="icon_team">💡</span></h1>
+            <h1><span id="status_dot"></span>XO Online <span id="icon_team">💡</span></h1>
             <div id="trang_thai_luot">
-                <span id="hien_thi_luot" class="luot_choi_hien_thi do">...</span>
+                <span id="hien_thi_luot" class="luot_choi_hien_thi do">Đang tải...</span>
             </div>
         </div>
         
@@ -241,7 +155,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection, query, orderBy, limit, getDocs, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -257,7 +171,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- AUDIO ---
         const AUDIO_JOIN_SRC = "data:audio/wav;base64,UklGRi4AAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAACAgICAAAAAgICAgIC";
         const AUDIO_CHAT_SRC = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
         let audioEnabled = false;
@@ -273,45 +186,54 @@
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
-        
         let che_do_goi_y = { X: false, O: false };
         let cac_goi_y = { X: {}, O: {} }; 
-
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
         // --- INIT STRICT FLOW ---
+        function set_status(status) {
+            const dot = document.getElementById('status_dot');
+            dot.className = '';
+            if (status === 'connecting') dot.classList.add('dot-connecting');
+            else if (status === 'online') dot.classList.add('dot-online');
+            else dot.classList.add('dot-offline');
+        }
+
         async function init() {
             const container = document.getElementById('khung_ban_co');
-            const statusLight = document.getElementById('status_light');
             viewOffsetX = container.clientWidth / 2; viewOffsetY = container.clientHeight / 2;
             ve_ban_co(); cap_nhat_ui(); setup_interaction(); update_view_transform();
+            set_status('connecting');
 
-            statusLight.classList.add('status-connecting'); // Vang: Dang ket noi
-
-            try {
-                // 1. AUTH TRUOC
-                await signInAnonymously(auth);
-                user_id = auth.currentUser.uid;
-                
-                statusLight.classList.remove('status-connecting');
-                
-                // 2. CHECK URL SAU KHI AUTH
-                const urlParams = new URLSearchParams(window.location.search);
-                const roomParam = urlParams.get('room');
-                
-                if (roomParam) { 
-                    room_id = roomParam; is_host = false; my_role = 'O'; 
-                    lang_nghe_phong(room_id); 
+            // Lắng nghe trạng thái đăng nhập THỰC SỰ
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    user_id = user.uid;
+                    set_status('online');
+                    console.log("Logged in as:", user_id);
+                    
+                    // Chỉ kiểm tra URL SAU KHI đã đăng nhập xong
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const roomParam = urlParams.get('room');
+                    
+                    if (roomParam) {
+                        room_id = roomParam; is_host = false; my_role = 'O';
+                        lang_nghe_phong(room_id);
+                    } else {
+                        // Kích hoạt chế độ Solo / Tạo phòng
+                        document.getElementById('btn_tao_phong').textContent = "Tạo Phòng";
+                        document.getElementById('btn_tao_phong').disabled = false;
+                        cap_nhat_ui();
+                    }
                 } else {
-                    document.getElementById('btn_tao_phong').textContent = "Tạo Phòng";
-                    document.getElementById('btn_tao_phong').disabled = false;
-                    statusLight.classList.add('status-online'); // Xanh: Ready Solo
+                    // Chưa đăng nhập -> Thử đăng nhập lại
+                    signInAnonymously(auth).catch((error) => {
+                        console.error(error);
+                        set_status('offline');
+                        alert("Lỗi kết nối Firebase!");
+                    });
                 }
-            } catch (error) { 
-                console.error(error); 
-                statusLight.style.backgroundColor = '#ef4444'; // Do: Loi
-                alert("Lỗi kết nối Server! Vui lòng tải lại trang."); 
-            }
+            });
         }
 
         window.mo_lobby = async function() {
@@ -382,7 +304,6 @@
                     update_view_transform();
                     e.preventDefault();
                 } else {
-                    // Hover (PC)
                     const rect = container.getBoundingClientRect();
                     const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
                     const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
@@ -451,7 +372,6 @@
                 return;
             }
             if (room_id && luot_choi !== my_role) return;
-            
             gui_nuoc_di(h, c);
         }
 
@@ -493,7 +413,6 @@
             document.getElementById('khung_chat').style.display = 'none'; 
             document.getElementById('nut_mo_chat').style.display = 'none';
             document.getElementById('modal_qr').style.display = 'none';
-            document.getElementById('status_light').className = 'status-online'; // Back to green
             
             const btnCreate = document.getElementById('btn_tao_phong');
             btnCreate.textContent = "Tạo Phòng";
@@ -513,16 +432,22 @@
         }
 
         function lang_nghe_phong(id) {
-            // BAT BUOC BAT DEN XANH KHI KET NOI THANH CONG
-            document.getElementById('status_light').classList.add('status-online');
+            // BAT BUOC RESET LISTENER NEU DA TON TAI
+            if (unsubscribe) unsubscribe();
+            
             updateDoc(doc(db, 'games', id), { view_count: increment(1) });
             
             unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
-                if (!docSnap.exists()) { alert("Phòng đã bị giải tán!"); reset_local_state(); return; }
+                if (!docSnap.exists()) { 
+                    alert("Phòng đã bị giải tán!"); 
+                    reset_local_state(); return; 
+                }
                 const data = docSnap.data();
                 
-                if (data.nguoi_tao === null && data.nguoi_tham_gia === null) { deleteDoc(doc(db, 'games', id)); return; }
-                
+                // --- XU LY LOGIC KET NOI ---
+                if (data.nguoi_tao === null && data.nguoi_tham_gia === null) {
+                    deleteDoc(doc(db, 'games', id)); return;
+                }
                 if (is_host && !data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'none') {
                      alert("Đối thủ đã thoát! Bạn có thể tạo phòng mới.");
                      deleteDoc(doc(db, 'games', id)); reset_local_state(); return;
@@ -531,9 +456,14 @@
                     alert("Chủ phòng đã thoát!"); deleteDoc(doc(db, 'games', id)); reset_local_state(); return;
                 }
 
+                // --- CAP NHAT DATA ---
                 if (data.nguoi_tao === user_id) { is_host = true; my_role = 'X'; } 
                 else if (data.nguoi_tham_gia === user_id) { is_host = false; my_role = 'O'; } 
-                else if (!data.nguoi_tham_gia) { is_host = false; my_role = 'O'; updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id }); } 
+                else if (!data.nguoi_tham_gia) { 
+                    is_host = false; my_role = 'O'; 
+                    // Tu dong tham gia neu slot con trong
+                    updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id }); 
+                } 
                 else { is_host = false; my_role = 'SPECTATOR'; }
 
                 cac_nuoc_di = data.cac_nuoc_di || {};
@@ -544,11 +474,9 @@
                 hang_thang = data.hang_thang || [];
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
-                
                 che_do_goi_y = data.che_do_goi_y || { X: false, O: false };
                 cac_goi_y = data.cac_goi_y || { X: {}, O: {} };
                 
-                // HOST TU DONG DONG MODAL KHI NGUOI CHOI O VAO
                 if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display !== 'none') {
                     playSound('join'); dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!");
                 }
@@ -562,7 +490,10 @@
                 }
 
                 if (data.undo_request) xu_ly_undo_remote(data.undo_request, id);
-                cap_nhat_ui(); ve_ban_co();
+                
+                // QUAN TRONG: CAP NHAT UI NGAY LAP TUC
+                cap_nhat_ui(); 
+                ve_ban_co();
             });
         }
         
@@ -601,6 +532,8 @@
             if (luot_choi !== my_role) return;
             cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
+            
+            // CAP NHAT LOCAL TRUOC (OPTIMISTIC UI)
             ve_ban_co(); 
             
             await updateDoc(doc(db, 'games', room_id), {
@@ -648,7 +581,6 @@
             luoi.style.gridTemplateRows = `repeat(${rows}, auto)`;
             luoi.innerHTML = '';
             
-            // AGGREGATE SUGGESTIONS
             let my_suggestions = {}; 
             let self_suggest_id = null; 
 
