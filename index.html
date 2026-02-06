@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XO Online - Mobile Fix</title>
+    <title>XO Online - Team Mode Fix</title>
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -23,7 +23,6 @@
             height: 100vh; height: 100dvh; 
             display: flex; flex-direction: column; 
             overflow: hidden; user-select: none; 
-            /* QUAN TRONG: Ngan chan hanh vi mac dinh cua trinh duyet (scroll/zoom native) */
             touch-action: none; 
             -webkit-tap-highlight-color: transparent;
         }
@@ -84,7 +83,7 @@
             grid-auto-rows: var(--cell-size); grid-auto-columns: var(--cell-size); 
             pointer-events: none; 
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
-            transition: left 0.05s, top 0.05s; /* Giam thoi gian transition de drag muot hon */
+            transition: left 0.05s, top 0.05s;
         }
 
         .o_co { 
@@ -120,7 +119,7 @@
         }
         @keyframes pulse-border { 50% { border-color: #60a5fa; background-color: rgba(59, 130, 246, 0.2); } }
 
-        /* --- CHAT & UI --- */
+        /* --- CHAT --- */
         #nut_mo_chat { position: fixed; bottom: 80px; right: 20px; width: 45px; height: 45px; border-radius: 50%; background-color: #2563eb; color: white; display: none; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; z-index: 30; border: none; }
         #thong_bao_tin_moi { position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: none; justify-content: center; align-items: center; }
         #khung_chat { position: fixed; bottom: 80px; right: 20px; width: 300px; height: 400px; background-color: #1e293b; color: white; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); display: none; flex-direction: column; z-index: 31; border: 1px solid #334155; max-width: 85vw; }
@@ -137,11 +136,10 @@
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; }
         .modal_content { background: #1e293b; color: white; padding: 1.5rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 90%; }
         .qr_image { background: white; padding: 8px; border-radius: 4px; margin: 1rem 0; width: 180px; height: 180px; }
-        .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; padding: 0.5rem; margin-bottom: 1rem; cursor: pointer; word-break: break-all; font-size: 0.8rem; }
+        .link_box { background: #0f172a; padding: 0.5rem; border-radius: 4px; color: #94a3b8; margin-bottom: 1rem; cursor: pointer; word-break: break-all; font-size: 0.8rem; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
         .lobby-list { max-height: 50vh; overflow-y: auto; text-align: left; margin-top: 10px; border: 1px solid #334155; border-radius: 4px; }
         .room-item { padding: 10px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; background: #0f172a; }
-        .room-item:last-child { border-bottom: none; }
         .room-item:hover { background: #334155; cursor: pointer; }
         .room-status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
         .status-wait { background: #16a34a; color: white; }
@@ -262,8 +260,8 @@
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0;
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
         
-        let team_mode = false; 
-        let cac_goi_y = {}; 
+        let team_mode = { X: false, O: false }; 
+        let cac_goi_y = { X: {}, O: {} }; 
 
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
@@ -283,7 +281,7 @@
                     document.getElementById('btn_tao_phong').textContent = "Tạo Phòng";
                     document.getElementById('btn_tao_phong').disabled = false;
                 }
-            } catch (error) { console.error(error); alert("Lỗi kết nối Server! Vui lòng tải lại trang."); }
+            } catch (error) { console.error(error); alert("Lỗi kết nối Server!"); }
         }
 
         window.mo_lobby = async function() {
@@ -303,101 +301,54 @@
                     const isFull = data.nguoi_tham_gia ? true : false;
                     let active_players = (data.nguoi_tao ? 1 : 0) + (data.nguoi_tham_gia ? 1 : 0);
                     let display_views = Math.max(0, (data.view_count || 0) - active_players);
-                    
                     const item = document.createElement('div'); item.className = 'room-item';
                     item.innerHTML = `<div><div style="font-weight:bold; color:#f8fafc">Phòng: ${id}</div><div class="eye-count">👁️ ${display_views}</div></div><div class="room-status ${isFull ? 'status-full' : 'status-wait'}">${isFull ? 'Full' : 'Chờ'}</div>`;
                     item.onclick = () => window.location.href = `?room=${id}`;
                     listDiv.appendChild(item); count++;
                 });
                 if (count === 0) listDiv.innerHTML = '<div style="padding:10px;">Không có phòng online.</div>';
-            } catch (e) { console.error(e); listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Chưa có dữ liệu.</div>'; }
+            } catch (e) { listDiv.innerHTML = '<div style="padding:10px; color:#94a3b8">Chưa có dữ liệu.</div>'; }
         }
 
-        // --- INTERACTION ---
         function setup_interaction() {
             const container = document.getElementById('khung_ban_co');
             const highlight = document.getElementById('active_border');
-            
-            let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0;
-            let wasPinching = false; // Flag de tranh click nham sau khi zoom
+            let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0, wasPinching = false;
 
             const onPointerDown = (e) => {
                 if (document.querySelector('.modal_overlay[style*="display: flex"]')) return;
-                
-                // MULTI-TOUCH (ZOOM)
                 if (e.touches && e.touches.length === 2) { 
-                    isDragging = false; 
-                    wasPinching = true; 
+                    isDragging = false; wasPinching = true; 
                     initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
-                    highlight.style.display = 'none';
-                    return; 
+                    highlight.style.display = 'none'; return; 
                 }
-                
                 isDragging = true; didMove = false; 
-                // Set cursor style
-                container.classList.remove('cursor-pointer', 'cursor-grab');
-                container.classList.add('cursor-grabbing');
-                
+                container.classList.remove('cursor-pointer', 'cursor-grab'); container.classList.add('cursor-grabbing');
                 const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY;
-                startX = pageX; startY = pageY;
-                highlight.style.display = 'none';
+                startX = pageX; startY = pageY; highlight.style.display = 'none';
             };
 
             const onPointerMove = (e) => {
                 const pageX = e.pageX || (e.touches ? e.touches[0].pageX : 0);
                 const pageY = e.pageY || (e.touches ? e.touches[0].pageY : 0);
-
-                // ZOOM HANDLING
                 if (e.touches && e.touches.length === 2) { 
                     e.preventDefault(); 
                     const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
                     if (initialPinchDist > 0) updateZoom((dist - initialPinchDist) * 0.2); 
-                    initialPinchDist = dist; 
-                    return; 
+                    initialPinchDist = dist; return; 
                 }
-                
-                // DRAG HANDLING
                 if (isDragging) {
                     const dx = pageX - startX; const dy = pageY - startY;
-                    // NGUONG RUNG TAY 10px
                     if (Math.abs(dx) > 10 || Math.abs(dy) > 10) didMove = true;
-                    viewOffsetX += dx; viewOffsetY += dy;
-                    startX = pageX; startY = pageY;
-                    update_view_transform();
-                    e.preventDefault();
-                } else {
-                    // HOVER LOGIC (FOR MOUSE)
-                    const rect = container.getBoundingClientRect();
-                    const c = Math.floor((pageX - rect.left - viewOffsetX) / currentZoom);
-                    const h = Math.floor((pageY - rect.top - viewOffsetY) / currentZoom);
-                    
-                    if (!cac_nuoc_di[`${h},${c}`]) {
-                        container.classList.remove('cursor-grab', 'cursor-grabbing');
-                        container.classList.add('cursor-pointer'); 
-                        container.style.cursor = 'pointer';
-                    } else {
-                        container.classList.remove('cursor-pointer', 'cursor-grabbing');
-                        container.classList.add('cursor-grab'); 
-                        container.style.cursor = 'grab';
-                    }
+                    viewOffsetX += dx; viewOffsetY += dy; startX = pageX; startY = pageY;
+                    update_view_transform(); e.preventDefault();
                 }
             };
 
             const onPointerUp = (e) => {
-                isDragging = false; 
-                container.classList.remove('cursor-grabbing');
-                container.classList.add('cursor-grab'); 
-                container.style.cursor = 'grab';
-
-                // SAFETY CHECK FOR ZOOM
-                if (wasPinching) {
-                    if (!e.touches || e.touches.length === 0) wasPinching = false; 
-                    return; 
-                }
-
+                isDragging = false; container.classList.remove('cursor-grabbing'); container.classList.add('cursor-grab');
+                if (wasPinching) { if (!e.touches || e.touches.length === 0) wasPinching = false; return; }
                 if (!container.contains(e.target)) return;
-                
-                // CLICK LOGIC (CHUA DRAG)
                 if (!didMove) {
                     let clientX, clientY;
                     if (e.changedTouches && e.changedTouches.length > 0) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } else { clientX = e.clientX; clientY = e.clientY; }
@@ -425,27 +376,22 @@
 
         function update_view_transform() {
             const luoi = document.getElementById('luoi_co');
-            const minH = parseInt(luoi.dataset.minH || -1);
-            const minC = parseInt(luoi.dataset.minC || -1);
+            const minH = parseInt(luoi.dataset.minH || -1); const minC = parseInt(luoi.dataset.minC || -1);
             luoi.style.left = `${viewOffsetX + minC * currentZoom}px`;
             luoi.style.top = `${viewOffsetY + minH * currentZoom}px`;
             document.documentElement.style.setProperty('--cell-size', `${currentZoom}px`);
             document.documentElement.style.setProperty('--font-size', `${Math.max(currentZoom * 0.5, 8)}px`);
         }
 
-        // --- XU LY CLICK ---
         function xu_ly_click_o_co(h, c) {
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return; 
-            
-            // --- SPECTATOR SUGGESTION ---
             if (my_role === 'SPECTATOR') {
-                if (team_mode) gui_goi_y(id);
+                // Phe dang toi luot phai dang BAT goi y thi khan gia moi gui duoc
+                if (team_mode[luot_choi]) gui_goi_y(id);
                 return;
             }
-
             if (room_id && luot_choi !== my_role) return;
-            
             gui_nuoc_di(h, c);
         }
 
@@ -461,10 +407,10 @@
                 nuoc_di_cuoi: null, so_lan_undo: { X: 3, O: 3 }, undo_request: null, 
                 lich_su_chat: [], view_count: 0, 
                 ngay_tao: Date.now(), last_active: Date.now(),
-                team_mode: false, cac_goi_y: {}
+                team_mode: { X: false, O: false }, 
+                cac_goi_y: { X: {}, O: {} }
             });
-            hien_thi_qr(room_id);
-            lang_nghe_phong(room_id);
+            hien_thi_qr(room_id); lang_nghe_phong(room_id);
         }
 
         function hien_thi_qr(id) {
@@ -478,19 +424,13 @@
 
         function reset_local_state() {
             room_id = null; is_host = false; my_role = 'X'; 
-            cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; lich_su_chat = [];
-            team_mode = false; cac_goi_y = {};
+            cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
+            team_mode = { X: false, O: false }; cac_goi_y = { X: {}, O: {} };
             cap_nhat_ui(); ve_ban_co();
-            
             const url = new URL(window.location); url.searchParams.delete('room'); window.history.pushState({}, '', url);
             document.getElementById('khung_chat').style.display = 'none'; 
             document.getElementById('nut_mo_chat').style.display = 'none';
-            document.getElementById('modal_qr').style.display = 'none';
-            
-            const btnCreate = document.getElementById('btn_tao_phong');
-            btnCreate.textContent = "Tạo Phòng";
-            btnCreate.disabled = false;
-            btnCreate.style.display = 'block';
+            document.getElementById('btn_tao_phong').style.display = 'block';
         }
 
         window.roi_phong = async function(manual_click = false) {
@@ -507,29 +447,10 @@
         function lang_nghe_phong(id) {
             updateDoc(doc(db, 'games', id), { view_count: increment(1) });
             unsubscribe = onSnapshot(doc(db, 'games', id), (docSnap) => {
-                if (!docSnap.exists()) { 
-                    alert("Phòng đã bị giải tán!"); 
-                    reset_local_state(); return; 
-                }
+                if (!docSnap.exists()) { reset_local_state(); return; }
                 const data = docSnap.data();
+                if (data.nguoi_tao === null && data.nguoi_tham_gia === null) { deleteDoc(doc(db, 'games', id)); return; }
                 
-                // LOGIC XOA PHONG
-                if (data.nguoi_tao === null && data.nguoi_tham_gia === null) {
-                    deleteDoc(doc(db, 'games', id)); return;
-                }
-                
-                // NOTIFY DOI THU THOAT
-                if (is_host && !data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'none') {
-                     alert("Đối thủ đã thoát! Bạn có thể tạo phòng mới.");
-                     deleteDoc(doc(db, 'games', id));
-                     reset_local_state(); return;
-                }
-                if (my_role === 'O' && !data.nguoi_tao) {
-                    alert("Chủ phòng đã thoát! Bạn có thể tạo phòng mới.");
-                    deleteDoc(doc(db, 'games', id));
-                    reset_local_state(); return;
-                }
-
                 if (data.nguoi_tao === user_id) { is_host = true; my_role = 'X'; } 
                 else if (data.nguoi_tham_gia === user_id) { is_host = false; my_role = 'O'; } 
                 else if (!data.nguoi_tham_gia) { is_host = false; my_role = 'O'; updateDoc(doc(db, 'games', id), { nguoi_tham_gia: user_id }); } 
@@ -537,15 +458,12 @@
 
                 cac_nuoc_di = data.cac_nuoc_di || {};
                 lich_su_nuoc_di = data.lich_su_nuoc_di || [];
-                luot_choi = data.luot_choi;
-                nguoi_thang = data.nguoi_thang;
-                nuoc_di_cuoi = data.nuoc_di_cuoi;
-                hang_thang = data.hang_thang || [];
-                so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
+                luot_choi = data.luot_choi; nguoi_thang = data.nguoi_thang; nuoc_di_cuoi = data.nuoc_di_cuoi;
+                hang_thang = data.hang_thang || []; so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 
-                team_mode = data.team_mode || false;
-                cac_goi_y = data.cac_goi_y || {};
+                team_mode = data.team_mode || { X: false, O: false };
+                cac_goi_y = data.cac_goi_y || { X: {}, O: {} };
                 
                 const chat_cu = lich_su_chat.length;
                 lich_su_chat = data.lich_su_chat || [];
@@ -555,7 +473,7 @@
                     if (last_msg.sender !== my_role) { playSound('chat'); if (!is_chat_open) document.getElementById('thong_bao_tin_moi').style.display = 'flex'; }
                 }
 
-                if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') { playSound('join'); dong_modal('modal_qr'); alert("Người chơi thứ 2 đã tham gia!"); }
+                if (is_host && data.nguoi_tham_gia && document.getElementById('modal_qr').style.display === 'flex') { playSound('join'); dong_modal('modal_qr'); alert("Đối thủ đã tham gia!"); }
                 if (data.undo_request) xu_ly_undo_remote(data.undo_request, id);
                 cap_nhat_ui(); ve_ban_co();
             });
@@ -569,30 +487,31 @@
         }
 
         window.bat_tat_team_mode = async function() {
-            if (!is_host) return;
-            const new_status = !team_mode;
-            await updateDoc(doc(db, 'games', room_id), { team_mode: new_status, cac_goi_y: {} });
+            if (my_role === 'SPECTATOR' || !room_id) return;
+            const currentStatus = team_mode[my_role] || false;
+            const newStatus = !currentStatus;
+            await updateDoc(doc(db, 'games', room_id), { 
+                [`team_mode.${my_role}`]: newStatus,
+                [`cac_goi_y.${my_role}`]: {} 
+            });
         }
 
         async function gui_goi_y(id) {
-            await updateDoc(doc(db, 'games', room_id), { [`cac_goi_y.${user_id}`]: id });
+            if (my_role !== 'SPECTATOR' || !room_id) return;
+            // Gửi gợi ý cho phe đang tới lượt
+            await updateDoc(doc(db, 'games', room_id), { [`cac_goi_y.${luot_choi}.${user_id}`]: id });
         }
 
         async function gui_nuoc_di(h, c) {
             const id = `${h},${c}`;
             if (!room_id) {
-                cac_nuoc_di[id] = luot_choi;
-                nuoc_di_cuoi = id;
+                cac_nuoc_di[id] = luot_choi; nuoc_di_cuoi = id;
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
-                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; }
-                else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
+                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; } else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
                 ve_ban_co(); cap_nhat_ui(); return;
             }
             if (luot_choi !== my_role) return;
-            cac_nuoc_di[id] = my_role; nuoc_di_cuoi = id;
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
-            ve_ban_co(); 
-            
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
@@ -601,7 +520,7 @@
                 hang_thang: thang || [],
                 nuoc_di_cuoi: id,
                 undo_request: null,
-                cac_goi_y: {}, // CLEAR SUGGESTION
+                [`cac_goi_y.${my_role}`]: {}, // Xóa gợi ý của phe vừa đi
                 last_active: Date.now() 
             });
         }
@@ -613,55 +532,44 @@
                 for (let k=1; k<5; k++) { const id = `${h + dh*k},${c + dc*k}`; if (board[id] === player) { count++; line.push(id); } else break; }
                 for (let k=1; k<5; k++) { const id = `${h - dh*k},${c - dc*k}`; if (board[id] === player) { count++; line.push(id); } else break; }
                 if (count >= 5) return line; 
-            } 
-            return null;
+            } return null;
         }
 
         function ve_ban_co() {
             const luoi = document.getElementById('luoi_co');
             const keys = Object.keys(cac_nuoc_di);
-            let min_h, max_h, min_c, max_c;
+            let min_h=0, max_h=0, min_c=0, max_c=0;
             if (keys.length > 0) {
-                min_h = Infinity; max_h = -Infinity; min_c = Infinity; max_c = -Infinity;
-                keys.forEach(k => {
-                    const [h,c] = k.split(',').map(Number);
-                    if(h<min_h) min_h=h; if(h>max_h) max_h=h;
-                    if(c<min_c) min_c=c; if(c>max_c) max_c=c;
-                });
-            } else { min_h = 0; max_h = 0; min_c = 0; max_c = 0; }
-            const start_h = min_h - PADDING; const end_h = max_h + PADDING;
-            const start_c = min_c - PADDING; const end_c = max_c + PADDING;
+                min_h=Infinity; max_h=-Infinity; min_c=Infinity; max_c=-Infinity;
+                keys.forEach(k => { const [h,c] = k.split(',').map(Number); if(h<min_h) min_h=h; if(h>max_h) max_h=h; if(c<min_c) min_c=c; if(c>max_c) max_c=c; });
+            }
+            const start_h = min_h - PADDING, end_h = max_h + PADDING, start_c = min_c - PADDING, end_c = max_c + PADDING;
             luoi.dataset.minH = start_h; luoi.dataset.minC = start_c;
-            const rows = end_h - start_h + 1; const cols = end_c - start_c + 1;
-            luoi.style.gridTemplateColumns = `repeat(${cols}, auto)`;
-            luoi.style.gridTemplateRows = `repeat(${rows}, auto)`;
+            luoi.style.gridTemplateColumns = `repeat(${end_c - start_c + 1}, auto)`;
             luoi.innerHTML = '';
             
-            // COUNT SUGGESTIONS
+            // Xử lý gợi ý: Phe nào chỉ thấy gợi ý của phe đó
             let suggest_counts = {};
-            if (team_mode) {
-                Object.values(cac_goi_y).forEach(coord => {
-                    suggest_counts[coord] = (suggest_counts[coord] || 0) + 1;
-                });
+            if (room_id) {
+                // Nếu là người chơi, xem giỏ gợi ý của phe mình. Nếu là khán giả, xem giỏ gợi ý của phe đang tới lượt.
+                const phe_xem = (my_role === 'SPECTATOR') ? luot_choi : my_role;
+                if (team_mode[phe_xem]) {
+                    const goi_y_phe = cac_goi_y[phe_xem] || {};
+                    Object.values(goi_y_phe).forEach(coord => { suggest_counts[coord] = (suggest_counts[coord] || 0) + 1; });
+                }
             }
 
             for (let h=start_h; h<=end_h; h++) {
                 for (let c=start_c; c<=end_c; c++) {
-                    const id = `${h},${c}`;
-                    const div = document.createElement('div');
+                    const id = `${h},${c}`, div = document.createElement('div');
                     div.className = 'o_co';
                     if (cac_nuoc_di[id]) { div.textContent = cac_nuoc_di[id]; div.classList.add(cac_nuoc_di[id] === 'X' ? 'quan_x' : 'quan_o'); }
                     if (id === nuoc_di_cuoi) div.classList.add('o_vua_danh');
                     if (hang_thang.includes(id)) div.classList.add('o_thang');
-                    
                     if (suggest_counts[id] && !cac_nuoc_di[id]) {
                         div.classList.add('o_goi_y');
-                        const badge = document.createElement('div');
-                        badge.className = 'badge_goi_y';
-                        badge.textContent = suggest_counts[id];
-                        div.appendChild(badge);
+                        const badge = document.createElement('div'); badge.className = 'badge_goi_y'; badge.textContent = suggest_counts[id]; div.appendChild(badge);
                     }
-                    
                     luoi.appendChild(div);
                 }
             }
@@ -669,66 +577,47 @@
         }
 
         function cap_nhat_ui() {
-            const div = document.getElementById('trang_thai_luot');
-            const btn_replay = document.getElementById('btn_choi_lai');
-            const btn_undo = document.getElementById('btn_undo');
-            const btn_chat = document.getElementById('nut_mo_chat');
-            const mat_xem = document.getElementById('mat_xem');
-            const btn_lobby = document.getElementById('btn_lobby');
-            const btn_leave = document.getElementById('btn_roi_phong');
-            const btn_create = document.getElementById('btn_tao_phong');
-            const btn_team = document.getElementById('btn_toggle_team');
-            const icon_team = document.getElementById('icon_team');
-            
-            icon_team.style.display = team_mode ? 'inline-block' : 'none';
-            btn_team.textContent = team_mode ? "Tắt Gợi Ý" : "Bật Gợi Ý";
+            const div = document.getElementById('trang_thai_luot'), btn_replay = document.getElementById('btn_choi_lai');
+            const btn_undo = document.getElementById('btn_undo'), btn_chat = document.getElementById('nut_mo_chat');
+            const mat_xem = document.getElementById('mat_xem'), btn_lobby = document.getElementById('btn_lobby');
+            const btn_leave = document.getElementById('btn_roi_phong'), btn_create = document.getElementById('btn_tao_phong');
+            const btn_team = document.getElementById('btn_toggle_team'), icon_team = document.getElementById('icon_team');
             
             if (room_id) {
                 if (!is_chat_open) btn_chat.style.display = 'flex';
-                mat_xem.style.display = 'flex';
-                let display_views = Math.max(0, so_nguoi_xem - 2);
-                mat_xem.innerHTML = `👁️ ${display_views}`;
+                mat_xem.style.display = 'flex'; mat_xem.innerHTML = `👁️ ${Math.max(0, so_nguoi_xem - 2)}`;
+                btn_lobby.style.display = 'none'; btn_create.style.display = 'none'; btn_leave.style.display = 'block';
                 
-                btn_lobby.style.display = 'none';
-                btn_create.style.display = 'none';
-                btn_leave.style.display = 'block';
-                if (is_host) btn_team.style.display = 'block'; else btn_team.style.display = 'none';
-                
+                if (my_role !== 'SPECTATOR') {
+                    btn_team.style.display = 'block';
+                    btn_team.textContent = team_mode[my_role] ? "Tắt Gợi Ý (Team)" : "Bật Gợi Ý (Team)";
+                    icon_team.style.display = team_mode[my_role] ? 'inline-block' : 'none';
+                } else {
+                    btn_team.style.display = 'none';
+                    // Khán giả thấy icon nếu phe đang tới lượt có bật gợi ý
+                    icon_team.style.display = team_mode[luot_choi] ? 'inline-block' : 'none';
+                }
             } else {
-                btn_lobby.style.display = 'block';
-                btn_create.style.display = 'block';
-                btn_leave.style.display = 'none';
-                mat_xem.style.display = 'none';
-                btn_chat.style.display = 'none';
-                btn_team.style.display = 'none';
+                btn_lobby.style.display = 'block'; btn_create.style.display = 'block'; btn_leave.style.display = 'none';
+                mat_xem.style.display = 'none'; btn_chat.style.display = 'none'; btn_team.style.display = 'none';
             }
 
             if (nguoi_thang) {
-                div.innerHTML = `<span class="vang" style="padding:4px 8px;border-radius:4px">CHIẾN THẮNG: ${nguoi_thang}</span>`;
+                div.innerHTML = `<span class="vang">CHIẾN THẮNG: ${nguoi_thang}</span>`;
                 if ((is_host || !room_id) && my_role !== 'SPECTATOR') btn_replay.style.display = 'block';
                 btn_undo.style.display = 'none';
             } else {
                 let html = `Lượt: <span class="luot_choi_hien_thi ${luot_choi==='X'?'do':'xanh'}">${luot_choi}</span>`;
                 if (room_id) {
                     if (my_role === 'SPECTATOR') {
-                         html += ` <span class="spectator-badge">Đang xem</span>`;
-                         if (team_mode) html += ` <span class="luot_choi_hien_thi tim">Hãy gợi ý!</span>`;
-                         btn_undo.style.display = 'none';
+                        html += ` <span class="spectator-badge">Đang xem</span>`;
+                        if (team_mode[luot_choi]) html += ` <span class="luot_choi_hien_thi tim">Hãy gợi ý!</span>`;
                     } else {
                         html += ` (Bạn: ${my_role})`;
                         if (luot_choi === my_role) html += ` <span class="den-luot-ban">ĐẾN LƯỢT BẠN!</span>`;
                         btn_undo.style.display = 'block'; btn_undo.textContent = `Xin lại (${so_lan_undo[my_role]})`;
-                        const canUndo = so_lan_undo[my_role] > 0 && lich_su_nuoc_di.length > 0 && lich_su_nuoc_di[lich_su_nuoc_di.length-1].player === my_role;
-                        btn_undo.disabled = !canUndo;
-                        if (document.getElementById('btn_undo').textContent === "Đang xin...") btn_undo.disabled = true;
+                        btn_undo.disabled = !(so_lan_undo[my_role] > 0 && lich_su_nuoc_di.length > 0 && lich_su_nuoc_di[lich_su_nuoc_di.length-1].player === my_role);
                     }
-                } else {
-                    html += ` (Solo)`;
-                    btn_undo.style.display = 'block';
-                    btn_undo.textContent = "Chơi lại";
-                    btn_undo.onclick = () => window.location.reload(); 
-                    btn_replay.style.display = 'block';
-                    btn_replay.textContent = "Ván Mới";
                 }
                 div.innerHTML = html;
                 if (!nguoi_thang && !room_id) btn_replay.style.display = 'block';
@@ -736,45 +625,38 @@
         }
 
         window.bat_tat_chat = function() {
-            const box = document.getElementById('khung_chat');
-            const btn = document.getElementById('nut_mo_chat');
-            const badge = document.getElementById('thong_bao_tin_moi');
+            const box = document.getElementById('khung_chat'), btn = document.getElementById('nut_mo_chat');
             if (box.style.display === 'flex') { box.style.display = 'none'; btn.style.display = 'flex'; is_chat_open = false; } 
-            else { box.style.display = 'flex'; btn.style.display = 'none'; badge.style.display = 'none'; is_chat_open = true; const body = document.getElementById('noi_dung_chat'); body.scrollTop = body.scrollHeight; document.getElementById('chat_input').focus(); }
+            else { box.style.display = 'flex'; btn.style.display = 'none'; document.getElementById('thong_bao_tin_moi').style.display = 'none'; is_chat_open = true; }
         }
         window.render_chat = function() {
             const body = document.getElementById('noi_dung_chat'); body.innerHTML = '';
             lich_su_chat.forEach(msg => {
                 const div = document.createElement('div'); div.className = `tin-nhan ${msg.sender === my_role ? 'tin-ban' : 'tin-doi-thu'}`;
                 const r = document.createElement('div'); r.className='chat-role'; 
-                let name = 'Đối thủ'; if (msg.sender === my_role) name = 'Tôi'; else if (msg.sender === 'SPECTATOR') name = 'Khán giả';
-                r.textContent = name;
-                const t = document.createElement('div'); t.textContent = msg.content;
+                let name = msg.sender === my_role ? 'Tôi' : (msg.sender === 'SPECTATOR' ? 'Khán giả' : 'Đối thủ');
+                r.textContent = name; const t = document.createElement('div'); t.textContent = msg.content;
                 div.append(r, t); body.appendChild(div);
             });
             body.scrollTop = body.scrollHeight;
         }
         window.gui_tin_nhan = async function() {
-            const input = document.getElementById('chat_input'); const text = input.value.trim();
-            if (!text || !room_id) return;
-            input.value = '';
-            const new_history = [...lich_su_chat, { sender: my_role, content: text, time: Date.now() }];
-            await updateDoc(doc(db, 'games', room_id), { lich_su_chat: new_history });
+            const input = document.getElementById('chat_input'), text = input.value.trim();
+            if (!text || !room_id) return; input.value = '';
+            await updateDoc(doc(db, 'games', room_id), { lich_su_chat: [...lich_su_chat, { sender: my_role, content: text, time: Date.now() }] });
         }
         window.xu_ly_enter = (e) => { if(e.key === 'Enter') gui_tin_nhan(); }
-        window.gui_yeu_cau_undo = async () => { if (so_lan_undo[my_role] <= 0 || !lich_su_nuoc_di.length) return; if (lich_su_nuoc_di[lich_su_nuoc_di.length-1].player !== my_role) { alert("Chỉ đi lại nước của BẠN!"); return; } document.getElementById('btn_undo').textContent = "Đang xin..."; document.getElementById('btn_undo').disabled = true; await updateDoc(doc(db, 'games', room_id), { undo_request: { requester: my_role, status: 'pending' } }); }
-        window.xu_ly_phan_hoi_undo = async (dong_y) => { document.getElementById('modal_confirm_undo').style.display = 'none'; if (!dong_y) await updateDoc(doc(db, 'games', room_id), { 'undo_request.status': 'rejected' }); else { const snap = await getDoc(doc(db, 'games', room_id)); const data = snap.data(); const hist = data.lich_su_nuoc_di; const last = hist.pop(); delete data.cac_nuoc_di[last.id]; const prev = hist.length ? hist[hist.length-1].id : null; data.so_lan_undo[last.player]--; await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, nuoc_di_cuoi: prev, luot_choi: last.player, nguoi_thang: null, hang_thang: [], so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' } }); } }
-        window.kich_hoat_choi_lai = async () => { 
-            if (!room_id) {
-                if (Object.keys(cac_nuoc_di).length > 0 && !confirm("Ván chưa kết thúc. Tạo mới?")) return;
-                cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
-                ve_ban_co(); cap_nhat_ui();
-                return;
+        window.gui_yeu_cau_undo = async () => { if (so_lan_undo[my_role] <= 0) return; await updateDoc(doc(db, 'games', room_id), { undo_request: { requester: my_role, status: 'pending' } }); }
+        window.xu_ly_phan_hoi_undo = async (dong_y) => { 
+            document.getElementById('modal_confirm_undo').style.display = 'none'; 
+            if (!dong_y) await updateDoc(doc(db, 'games', room_id), { 'undo_request.status': 'rejected' }); 
+            else {
+                const snap = await getDoc(doc(db, 'games', room_id)), data = snap.data(), hist = data.lich_su_nuoc_di;
+                const last = hist.pop(); delete data.cac_nuoc_di[last.id]; data.so_lan_undo[last.player]--;
+                await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, luot_choi: last.player, nguoi_thang: null, so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' } });
             }
-            if (!nguoi_thang && Object.keys(cac_nuoc_di).length > 0) if (!confirm("Ván chưa kết thúc. Tạo mới?")) return; 
-            await xu_ly_choi_lai(); 
         }
-        window.xu_ly_choi_lai = async () => { let next = nguoi_thang ? (nguoi_thang === 'X' ? 'O' : 'X') : 'X'; if (room_id) await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: next, nguoi_thang: null, hang_thang: [], nuoc_di_cuoi: null, so_lan_undo: {X:3, O:3}, undo_request: null }); else { cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = next; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null; so_lan_undo = {X:3, O:3}; cap_nhat_ui(); ve_ban_co(); } }
+        window.kich_hoat_choi_lai = async () => { if (room_id) await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X', nguoi_thang: null, hang_thang: [], nuoc_di_cuoi: null, so_lan_undo: {X:3, O:3}, cac_goi_y: {X:{}, O:{}} }); else window.location.reload(); }
 
         init();
     </script>
