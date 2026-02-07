@@ -273,8 +273,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection, query, orderBy, limit, getDocs, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection, query, orderBy, limit, getDocs, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 
+        // Firebase Config - Luôn giữ nguyên của bạn
         const firebaseConfig = {
             apiKey: "AIzaSyA2Q9kQMtdXu9D22yaNH618EbcIs2cNVGU",
             authDomain: "xogame-27755.firebaseapp.com",
@@ -298,7 +299,7 @@
             am_thanh[type].play().catch(e => console.log("Audio waiting for interaction"));
         }
 
-        // --- VARS ---
+        // --- BIẾN TOÀN CỤC ---
         let user_id = null, room_id = null, is_host = false, my_role = 'X', unsubscribe = null;
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0, so_nguoi_choi = 0, ten_phong = "XO Online";
@@ -313,7 +314,6 @@
             viewOffsetX = container.clientWidth / 2; viewOffsetY = container.clientHeight / 2;
             ve_ban_co(); cap_nhat_ui(); setup_interaction(); update_view_transform();
 
-            // Hien huong dan khi vao game lan dau (luu local)
             if (!localStorage.getItem('da_xem_huong_dan')) {
                 mo_huong_dan();
                 localStorage.setItem('da_xem_huong_dan', 'true');
@@ -516,6 +516,7 @@
         }
 
         function xu_ly_click_o_co(h, c) {
+            if (nguoi_thang) return; // Không cho đánh khi đã thắng
             const id = `${h},${c}`;
             if (cac_nuoc_di[id]) return; 
             if (my_role === 'SPECTATOR') {
@@ -608,17 +609,24 @@
         }
 
         async function gui_nuoc_di(h, c) {
+            if (nguoi_thang) return;
             const id = `${h},${c}`;
+            const player_now = luot_choi;
+
+            // Kiểm tra thắng ngay lập tức với board ảo (bao gồm nước mới)
+            const virtual_board = { ...cac_nuoc_di, [id]: player_now };
+            const thang = tinh_toan_thang(h, c, player_now, virtual_board);
+
             if (!room_id) {
                 phat_am('move');
-                cac_nuoc_di[id] = luot_choi; nuoc_di_cuoi = id;
-                const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
-                if (thang) { nguoi_thang = luot_choi; hang_thang = thang; } else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
+                cac_nuoc_di[id] = player_now; nuoc_di_cuoi = id;
+                if (thang) { nguoi_thang = player_now; hang_thang = thang; } else luot_choi = (player_now === 'X' ? 'O' : 'X');
                 ve_ban_co(); cap_nhat_ui(); return;
             }
-            if (luot_choi !== my_role) return;
+
+            if (player_now !== my_role) return;
             phat_am('move');
-            const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
+
             await updateDoc(doc(db, 'games', room_id), {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
