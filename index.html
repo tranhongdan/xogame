@@ -52,7 +52,7 @@
         
         @keyframes pulse { 50% { opacity: .5; } }
 
-        button { background-color: #334155; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; white-space: nowrap; pointer-events: auto; }
+        button { background-color: #334155; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-weight: 500; font-size: 0.8rem; white-space: nowrap; pointer-events: auto; position: relative; }
         button:hover { background-color: #475569; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background-color: #2563eb; }
@@ -66,6 +66,16 @@
         
         #icon_team { display: none; font-size: 1.1rem; animation: bounce 2s infinite; margin-left:5px; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+        /* Badge bao so luong phong */
+        .badge-count {
+            position: absolute; top: -5px; right: -5px;
+            background: #ef4444; color: white;
+            font-size: 10px; min-width: 16px; height: 16px;
+            border-radius: 8px; display: none;
+            justify-content: center; align-items: center;
+            padding: 0 4px; border: 1px solid #1e293b;
+        }
 
         /* --- KHUNG BAN CO --- */
         #khung_ban_co { 
@@ -174,7 +184,10 @@
             <span id="thong_so_phong" class="stats-badge" style="display:none;"></span>
             <button id="btn_copy_id" onclick="copy_room_id()" class="btn-primary" style="display:none; font-size: 0.7rem;">Chép ID</button>
             <button id="btn_toggle_team" onclick="bat_tat_team_mode(event)" class="btn-team" style="display:none;">Bật Gợi Ý</button>
-            <button id="btn_lobby" onclick="mo_lobby(event)" class="btn-success">Danh Sách</button>
+            <button id="btn_lobby" onclick="mo_lobby(event)" class="btn-success">
+                Danh Sách
+                <div id="badge_lobby_count" class="badge-count">0</div>
+            </button>
             <button id="btn_roi_phong" onclick="roi_phong(true)" class="btn-danger" style="display:none;">Thoát</button>
             <button id="btn_undo" onclick="gui_yeu_cau_undo(event)" class="btn-warning" style="display:none;" disabled>Xin Lại</button>
             <button id="btn_choi_lai" onclick="kich_hoat_choi_lai(event)" class="btn-primary" style="display:none;">Ván Mới</button>
@@ -303,7 +316,7 @@
         }
 
         // --- VARS ---
-        let user_id = null, room_id = null, is_host = false, my_role = 'X', unsubscribe = null;
+        let user_id = null, room_id = null, is_host = false, my_role = 'X', unsubscribe = null, unsubscribeLobbyCount = null;
         let cac_nuoc_di = {}, lich_su_nuoc_di = [], luot_choi = 'X', nguoi_thang = null, hang_thang = [], nuoc_di_cuoi = null, so_lan_undo = { X: 3, O: 3 };
         let lich_su_chat = [], is_chat_open = false, so_nguoi_xem = 0, so_nguoi_choi = 0, ten_phong = "XO Online";
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
@@ -326,12 +339,41 @@
             try {
                 await signInAnonymously(auth);
                 user_id = auth.currentUser.uid;
+                
+                // Lang nghe so luong phong dang hoat dong
+                lang_nghe_so_luong_lobby();
+
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomParam = urlParams.get('room');
                 if (roomParam) { 
                     room_id = roomParam; is_host = false; my_role = 'O'; lang_nghe_phong(room_id); 
                 }
             } catch (error) { console.error(error); alert("Lỗi kết nối Server!"); }
+        }
+
+        // Ham moi: Lang nghe bien dong so luong phong dang hoat dong
+        function lang_nghe_so_luong_lobby() {
+            if(unsubscribeLobbyCount) unsubscribeLobbyCount();
+            const q = query(collection(db, "games"), orderBy("last_active", "desc"), limit(100));
+            unsubscribeLobbyCount = onSnapshot(q, (snapshot) => {
+                let activeCount = 0;
+                const now = Date.now();
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const lastTime = data.last_active || data.ngay_tao;
+                    if (now - lastTime <= TIMEOUT_MS) {
+                        activeCount++;
+                    }
+                });
+                
+                const badge = document.getElementById('badge_lobby_count');
+                if (activeCount > 0) {
+                    badge.textContent = activeCount;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
         }
 
         window.mo_huong_dan = () => {
@@ -752,20 +794,15 @@
                         btn_undo.style.display = 'block'; 
                         btn_undo.textContent = `Xin lại (${so_lan_undo[my_role]})`;
                         
-                        // LOGIC DIEU CHINH: Kiem tra nuoc di cuoi cung trong lich su
                         const co_lich_su = lich_su_nuoc_di.length > 0;
                         const nuoc_di_cuoi_phai_cua_minh = co_lich_su && lich_su_nuoc_di[lich_su_nuoc_di.length - 1].player === my_role;
                         const nuoc_di_truoc_do_la_cua_minh = co_lich_su && lich_su_nuoc_di.length >= 2 && lich_su_nuoc_di[lich_su_nuoc_di.length - 2].player === my_role;
                         
-                        // Cho phep undo neu:
-                        // 1. Toi vua danh xong (nuoc cuoi cung la cua toi)
-                        // 2. Doi thu vua danh xong (nuoc truoc do la cua toi) -> Toi xin rut lai nuoc truoc do cua minh
                         const co_the_undo = so_lan_undo[my_role] > 0 && (nuoc_di_cuoi_phai_cua_minh || (luot_choi === my_role && nuoc_di_truoc_do_la_cua_minh));
                         
                         btn_undo.disabled = !co_the_undo;
                     }
                 } else {
-                    // Offline mode
                     btn_undo.style.display = 'block';
                     btn_undo.disabled = lich_su_nuoc_di.length === 0;
                     btn_undo.textContent = "Xin Lại";
@@ -804,7 +841,6 @@
         window.gui_yeu_cau_undo = async (e) => { 
             if(e) e.stopPropagation(); 
             if (!room_id) {
-                // Offline undo
                 if (lich_su_nuoc_di.length === 0) return;
                 const last = lich_su_nuoc_di.pop();
                 delete cac_nuoc_di[last.id];
@@ -825,7 +861,6 @@
                 let hist = [...data.lich_su_nuoc_di];
                 const requester = data.undo_request.requester;
                 
-                // Tim nuoc di cuoi cung cua nguoi yeu cau trong lich su
                 let foundIndex = -1;
                 for(let i = hist.length - 1; i >= 0; i--) {
                     if(hist[i].player === requester) {
@@ -835,7 +870,6 @@
                 }
 
                 if (foundIndex !== -1) {
-                    // Xoa tat ca cac nuoc di tu nuoc do tro di
                     const removedMoves = hist.splice(foundIndex);
                     removedMoves.forEach(m => delete data.cac_nuoc_di[m.id]);
                     
@@ -886,4 +920,3 @@
     </script>
 </body>
 </html>
-
