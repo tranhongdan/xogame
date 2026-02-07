@@ -228,6 +228,7 @@
                 <h3>4. Luật chơi</h3>
                 <ul>
                     <li>Thắng khi xếp đủ <b>5 quân</b> liên tiếp (ngang, dọc hoặc chéo).</li>
+                    <li><b>Đặc biệt:</b> Từ ván 2, người thua ván trước sẽ được quyền đi trước.</li>
                 </ul>
             </div>
             <div class="modal_actions">
@@ -308,6 +309,7 @@
         let currentZoom = 40, viewOffsetX = 0, viewOffsetY = 0;
         let team_mode = { X: false, O: false }, cac_goi_y = { X: {}, O: {} }; 
         let cache_lobby = [];
+        let nguoi_thua_van_truoc = null;
 
         const PADDING = 3, TIMEOUT_MS = 5 * 60 * 1000; 
 
@@ -360,7 +362,8 @@
                 lich_su_chat: [], view_count: 0, 
                 ngay_tao: Date.now(), last_active: Date.now(),
                 team_mode: { X: false, O: false }, 
-                cac_goi_y: { X: {}, O: {} }
+                cac_goi_y: { X: {}, O: {} },
+                nguoi_thua_van_truoc: null
             });
             
             dong_modal('modal_tao_phong');
@@ -532,7 +535,7 @@
         function reset_local_state() {
             room_id = null; is_host = false; my_role = 'X'; ten_phong = "XO Online";
             cac_nuoc_di = {}; lich_su_nuoc_di = []; luot_choi = 'X'; nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
-            team_mode = { X: false, O: false }; cac_goi_y = { X: {}, O: {} };
+            team_mode = { X: false, O: false }; cac_goi_y = { X: {}, O: {} }; nguoi_thua_van_truoc = null;
             cap_nhat_ui(); ve_ban_co();
             const url = new URL(window.location); url.searchParams.delete('room'); window.history.pushState({}, '', url);
             document.getElementById('khung_chat').style.display = 'none'; 
@@ -564,7 +567,6 @@
                     if (data.cac_nuoc_di[data.nuoc_di_cuoi] !== my_role) phat_am('move');
                 }
 
-                // Kiểm tra nếu có người vừa thắng
                 if (data.nguoi_thang && !nguoi_thang) phat_am('win');
 
                 if (data.nguoi_tao === null && data.nguoi_tham_gia === null) { deleteDoc(doc(db, 'games', id)); return; }
@@ -584,6 +586,7 @@
                 so_lan_undo = data.so_lan_undo || { X: 3, O: 3 };
                 so_nguoi_xem = data.view_count || 0;
                 so_nguoi_choi = new_player_count;
+                nguoi_thua_van_truoc = data.nguoi_thua_van_truoc || null;
                 
                 team_mode = data.team_mode || { X: false, O: false };
                 cac_goi_y = data.cac_goi_y || { X: {}, O: {} };
@@ -623,6 +626,7 @@
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
                 if (thang) { 
                     nguoi_thang = luot_choi; hang_thang = thang; 
+                    nguoi_thua_van_truoc = (luot_choi === 'X' ? 'O' : 'X');
                     phat_am('win');
                 } else luot_choi = (luot_choi === 'X' ? 'O' : 'X');
                 ve_ban_co(); cap_nhat_ui(); return;
@@ -630,7 +634,7 @@
             if (luot_choi !== my_role || nguoi_thang) return;
             
             const thang = tinh_toan_thang(h, c, my_role, cac_nuoc_di);
-            await updateDoc(doc(db, 'games', room_id), {
+            const updates = {
                 [`cac_nuoc_di.${id}`]: my_role,
                 lich_su_nuoc_di: [...lich_su_nuoc_di, { id, player: my_role }],
                 luot_choi: thang ? my_role : (my_role === 'X' ? 'O' : 'X'),
@@ -639,7 +643,13 @@
                 nuoc_di_cuoi: id,
                 [`cac_goi_y.${my_role}`]: {}, 
                 last_active: Date.now() 
-            });
+            };
+
+            if (thang) {
+                updates.nguoi_thua_van_truoc = (my_role === 'X' ? 'O' : 'X');
+            }
+
+            await updateDoc(doc(db, 'games', room_id), updates);
         }
 
         function tinh_toan_thang(h, c, player, board) { 
@@ -780,7 +790,32 @@
                 await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, luot_choi: last.player, nguoi_thang: null, hang_thang: [], so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' } });
             }
         }
-        window.kich_hoat_choi_lai = async (e) => { if(e) e.stopPropagation(); if (room_id) await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: {}, lich_su_nuoc_di: [], luot_choi: 'X', nguoi_thang: null, hang_thang: [], nuoc_di_cuoi: null, so_lan_undo: {X:3, O:3}, cac_goi_y: {X:{}, O:{}} }); else window.location.reload(); }
+        
+        window.kich_hoat_choi_lai = async (e) => { 
+            if(e) e.stopPropagation(); 
+            // Xác định ai đi trước: người thua ván trước đi trước (X)
+            const nguoi_di_truoc = nguoi_thua_van_truoc || 'X';
+            
+            if (room_id) { 
+                await updateDoc(doc(db, 'games', room_id), { 
+                    cac_nuoc_di: {}, 
+                    lich_su_nuoc_di: [], 
+                    luot_choi: nguoi_di_truoc, 
+                    nguoi_thang: null, 
+                    hang_thang: [], 
+                    nuoc_di_cuoi: null, 
+                    so_lan_undo: {X:3, O:3}, 
+                    cac_goi_y: {X:{}, O:{}} 
+                }); 
+            } else {
+                // Chế độ Offline
+                cac_nuoc_di = {}; lich_su_nuoc_di = [];
+                luot_choi = nguoi_di_truoc; 
+                nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
+                ve_ban_co(); cap_nhat_ui();
+            } 
+        }
+        
         window.dong_modal = (id) => document.getElementById(id).style.display = 'none';
 
         init();
