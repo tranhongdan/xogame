@@ -34,7 +34,7 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
             z-index: 20; display: flex; flex-wrap: wrap; 
             justify-content: space-between; align-items: center; gap: 8px; 
-            pointer-events: auto; /* Dam bao UI nhan tuong tac */
+            pointer-events: auto;
         }
         .left-info { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
         h1 { margin: 0; font-size: 1rem; font-weight: bold; color: #facc15; white-space: nowrap; }
@@ -60,6 +60,7 @@
         .btn-danger { background-color: #dc2626; }
         .btn-success { background-color: #16a34a; }
         .btn-team { background-color: #7c3aed; }
+        .btn-help { background-color: #64748b; border-radius: 50%; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; }
 
         .stats-badge { color: #94a3b8; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px; }
         
@@ -131,7 +132,7 @@
 
         /* --- MODAL --- */
         .modal_overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 50; pointer-events: auto; }
-        .modal_content { background: #1e293b; color: white; padding: 1.5rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 95%; pointer-events: auto; }
+        .modal_content { background: #1e293b; color: white; padding: 1.5rem; border-radius: 0.5rem; text-align: center; width: 350px; max-width: 95%; pointer-events: auto; max-height: 90vh; overflow-y: auto; }
         .modal_actions { display: flex; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
         
         .lobby-search { margin-bottom: 10px; width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white; }
@@ -145,6 +146,13 @@
         .room-status { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
         .status-wait { background: #16a34a; color: white; }
         .status-full { background: #ef4444; color: white; }
+
+        /* --- STYLES HUONG DAN --- */
+        .huong-dan-text { text-align: left; font-size: 0.85rem; line-height: 1.5; color: #cbd5e1; }
+        .huong-dan-text h3 { color: #facc15; margin: 15px 0 8px 0; font-size: 1rem; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+        .huong-dan-text ul { padding-left: 20px; margin: 0; }
+        .huong-dan-text li { margin-bottom: 6px; }
+        .huong-dan-text b { color: #f8fafc; }
         
         #ban_quyen { padding: 5px; text-align: center; font-size: 0.7rem; color: #64748b; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; }
     </style>
@@ -153,6 +161,7 @@
 
     <div id="thong_tin">
         <div class="left-info">
+            <button class="btn-help" onclick="mo_huong_dan()">?</button>
             <h1 id="ten_phong_header">XO Online <span id="icon_team">💡</span></h1>
             <div id="trang_thai_luot">
                 <span id="hien_thi_luot" class="luot_choi_hien_thi do">...</span>
@@ -191,6 +200,39 @@
     </div>
 
     <div id="ban_quyen">Trần Hồng Dân - tranhongdan@tranphudlk.edu.vn</div>
+
+    <div id="modal_huong_dan" class="modal_overlay" onclick="dong_modal('modal_huong_dan')">
+        <div class="modal_content" style="width: 400px;" onclick="event.stopPropagation()">
+            <h2 style="margin:0; color:#facc15">HƯỚNG DẪN NHANH</h2>
+            <div class="huong-dan-text">
+                <h3>1. Kết nối</h3>
+                <ul>
+                    <li><b>Tạo phòng:</b> Nhấn [Tạo Phòng] → Nhập tên → Nhấn [Chép ID] gửi bạn bè.</li>
+                    <li><b>Vào chơi:</b> Nhấn [Danh sách] để tìm phòng.</li>
+                    <li><b>Khán giả:</b> Khi phòng đủ 2 người chơi thì những người vào sau sẽ là người xem và góp ý nước đi cho người chơi (nếu người chơi Bật gợi ý).</li>
+                </ul>
+                <h3>2. Điều khiển bàn cờ</h3>
+                <ul>
+                    <li><b>Di chuyển:</b> Nhấn giữ và <b>Kéo/Vuốt</b> để trượt bàn cờ.</li>
+                    <li><b>Phóng to/Thu nhỏ:</b> Dùng <b>con lăn chuột</b> hoặc <b>2 ngón tay</b> (Pinch).</li>
+                    <li><b>Đặt quân:</b> <b>Chạm/Click</b> nhanh vào ô trống khi tới lượt.</li>
+                </ul>
+                <h3>3. Tính năng hỗ trợ</h3>
+                <ul>
+                    <li><b>Xin đi lại:</b> Nhấn <b>[Xin Lại]</b> (Tối đa 3 lần, cần đối thủ đồng ý).</li>
+                    <li><b>Gợi ý (Team Mode):</b> Bật <b>[Gợi ý]</b> để khán giả đánh dấu vị trí nên đi giúp bạn.</li>
+                    <li><b>Chat:</b> Nhấn biểu tượng 💬 để trò chuyện cùng mọi người.</li>
+                </ul>
+                <h3>4. Luật chơi</h3>
+                <ul>
+                    <li>Thắng khi xếp đủ <b>5 quân</b> liên tiếp (ngang, dọc hoặc chéo).</li>
+                </ul>
+            </div>
+            <div class="modal_actions">
+                <button onclick="dong_modal('modal_huong_dan')" class="btn-primary">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
 
     <div id="modal_tao_phong" class="modal_overlay" onclick="dong_modal('modal_tao_phong')">
         <div class="modal_content" onclick="event.stopPropagation()">
@@ -271,6 +313,12 @@
             viewOffsetX = container.clientWidth / 2; viewOffsetY = container.clientHeight / 2;
             ve_ban_co(); cap_nhat_ui(); setup_interaction(); update_view_transform();
 
+            // Hien huong dan khi vao game lan dau (luu local)
+            if (!localStorage.getItem('da_xem_huong_dan')) {
+                mo_huong_dan();
+                localStorage.setItem('da_xem_huong_dan', 'true');
+            }
+
             try {
                 await signInAnonymously(auth);
                 user_id = auth.currentUser.uid;
@@ -281,6 +329,10 @@
                 }
             } catch (error) { console.error(error); alert("Lỗi kết nối Server!"); }
         }
+
+        window.mo_huong_dan = () => {
+            document.getElementById('modal_huong_dan').style.display = 'flex';
+        };
 
         window.mo_modal_tao_phong = (e) => {
             if(e) e.stopPropagation();
@@ -385,7 +437,6 @@
             let isDragging = false, startX, startY, didMove = false, initialPinchDist = 0, wasPinching = false;
 
             const onPointerDown = (e) => {
-                // Neu click trung Header hoac bat ky UI nao thi khong xu ly o day
                 if (e.target.closest('#thong_tin') || e.target.closest('.modal_overlay') || e.target.closest('#khung_chat') || e.target.closest('#nut_mo_chat')) return;
 
                 if (e.touches && e.touches.length === 2) { 
@@ -430,7 +481,6 @@
                         clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; 
                     } else { clientX = e.clientX; clientY = e.clientY; }
                     
-                    // Kiem tra lan cuoi xem co click vao UI khong
                     const targetEl = document.elementFromPoint(clientX, clientY);
                     if (targetEl && (targetEl.closest('#thong_tin') || targetEl.closest('.modal_overlay') || targetEl.closest('#khung_chat') || targetEl.closest('#nut_mo_chat'))) return;
 
@@ -504,14 +554,11 @@
                 if (!docSnap.exists()) { reset_local_state(); return; }
                 const data = docSnap.data();
                 
-                // Am thanh khi co doi thu vao phong
                 const old_player_count = so_nguoi_choi;
                 const new_player_count = (data.nguoi_tao ? 1 : 0) + (data.nguoi_tham_gia ? 1 : 0);
                 if (new_player_count > old_player_count) phat_am('connect');
 
-                // Am thanh khi doi thu dat quan
                 if (data.nuoc_di_cuoi !== nuoc_di_cuoi && data.nuoc_di_cuoi) {
-                    const [h, c] = data.nuoc_di_cuoi.split(',').map(Number);
                     if (data.cac_nuoc_di[data.nuoc_di_cuoi] !== my_role) phat_am('move');
                 }
 
