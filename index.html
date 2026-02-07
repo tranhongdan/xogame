@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>XO Online - Chế độ Phòng</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kalam:wght@700&display=swap" rel="stylesheet">
     <style>
         /* --- CSS BIEN --- */
         :root { 
@@ -91,13 +90,11 @@
         .o_co { 
             background-color: var(--paper-bg); 
             display: flex; justify-content: center; align-items: center; 
-            font-weight: 700; position: relative; 
+            font-weight: bold; position: relative; 
             width: var(--cell-size); height: var(--cell-size); box-sizing: border-box;
             font-size: var(--font-size); pointer-events: none; 
             border-right: 1px solid var(--grid-line);
             border-bottom: 1px solid var(--grid-line);
-            /* Ap dung font viet tay Kalam cho quan co */
-            font-family: 'Kalam', cursive;
         }
         
         .quan_x { color: #ef4444; } .quan_o { color: #3b82f6; }
@@ -113,7 +110,6 @@
             background: #7c3aed; color: white;
             font-size: 0.6rem; width: 14px; height: 14px;
             border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            font-family: sans-serif; /* Reset font cho so goi y */
         }
 
         #active_border {
@@ -627,6 +623,7 @@
             if (!room_id) {
                 phat_am('move');
                 cac_nuoc_di[id] = luot_choi; nuoc_di_cuoi = id;
+                lich_su_nuoc_di.push({ id, player: luot_choi });
                 const thang = tinh_toan_thang(h, c, luot_choi, cac_nuoc_di);
                 if (thang) { 
                     nguoi_thang = luot_choi; hang_thang = thang; 
@@ -747,12 +744,31 @@
                     if (my_role === 'SPECTATOR') {
                         html += ` <span class="spectator-badge">Đang xem</span>`;
                         if (team_mode[luot_choi]) html += ` <span class="luot_choi_hien_thi tim">Hãy gợi ý!</span>`;
+                        btn_undo.style.display = 'none';
                     } else {
                         html += ` (Bạn: ${my_role})`;
                         if (luot_choi === my_role) html += ` <span class="den-luot-ban">ĐẾN LƯỢT BẠN!</span>`;
-                        btn_undo.style.display = 'block'; btn_undo.textContent = `Xin lại (${so_lan_undo[my_role]})`;
-                        btn_undo.disabled = !(so_lan_undo[my_role] > 0 && lich_su_nuoc_di.length > 0 && lich_su_nuoc_di[lich_su_nuoc_di.length-1].player === my_role);
+                        
+                        btn_undo.style.display = 'block'; 
+                        btn_undo.textContent = `Xin lại (${so_lan_undo[my_role]})`;
+                        
+                        // LOGIC DIEU CHINH: Kiem tra nuoc di cuoi cung trong lich su
+                        const co_lich_su = lich_su_nuoc_di.length > 0;
+                        const nuoc_di_cuoi_phai_cua_minh = co_lich_su && lich_su_nuoc_di[lich_su_nuoc_di.length - 1].player === my_role;
+                        const nuoc_di_truoc_do_la_cua_minh = co_lich_su && lich_su_nuoc_di.length >= 2 && lich_su_nuoc_di[lich_su_nuoc_di.length - 2].player === my_role;
+                        
+                        // Cho phep undo neu:
+                        // 1. Toi vua danh xong (nuoc cuoi cung la cua toi)
+                        // 2. Doi thu vua danh xong (nuoc truoc do la cua toi) -> Toi xin rut lai nuoc truoc do cua minh
+                        const co_the_undo = so_lan_undo[my_role] > 0 && (nuoc_di_cuoi_phai_cua_minh || (luot_choi === my_role && nuoc_di_truoc_do_la_cua_minh));
+                        
+                        btn_undo.disabled = !co_the_undo;
                     }
+                } else {
+                    // Offline mode
+                    btn_undo.style.display = 'block';
+                    btn_undo.disabled = lich_su_nuoc_di.length === 0;
+                    btn_undo.textContent = "Xin Lại";
                 }
                 div.innerHTML = html;
                 btn_replay.style.display = (room_id ? 'none' : 'block');
@@ -784,20 +800,64 @@
             await updateDoc(doc(db, 'games', room_id), { lich_su_chat: [...lich_su_chat, { sender: my_role, content: text, time: Date.now() }] });
         }
         window.xu_ly_enter = (e) => { if(e.key === 'Enter') gui_tin_nhan(); }
-        window.gui_yeu_cau_undo = async (e) => { if(e) e.stopPropagation(); if (so_lan_undo[my_role] <= 0) return; await updateDoc(doc(db, 'games', room_id), { undo_request: { requester: my_role, status: 'pending' } }); }
+        
+        window.gui_yeu_cau_undo = async (e) => { 
+            if(e) e.stopPropagation(); 
+            if (!room_id) {
+                // Offline undo
+                if (lich_su_nuoc_di.length === 0) return;
+                const last = lich_su_nuoc_di.pop();
+                delete cac_nuoc_di[last.id];
+                luot_choi = last.player;
+                nuoc_di_cuoi = lich_su_nuoc_di.length > 0 ? lich_su_nuoc_di[lich_su_nuoc_di.length-1].id : null;
+                ve_ban_co(); cap_nhat_ui();
+                return;
+            }
+            if (so_lan_undo[my_role] <= 0) return; 
+            await updateDoc(doc(db, 'games', room_id), { undo_request: { requester: my_role, status: 'pending' } }); 
+        }
+
         window.xu_ly_phan_hoi_undo = async (dong_y) => { 
             document.getElementById('modal_confirm_undo').style.display = 'none'; 
             if (!dong_y) await updateDoc(doc(db, 'games', room_id), { 'undo_request.status': 'rejected' }); 
             else {
-                const snap = await getDoc(doc(db, 'games', room_id)), data = snap.data(), hist = data.lich_su_nuoc_di;
-                const last = hist.pop(); delete data.cac_nuoc_di[last.id]; data.so_lan_undo[last.player]--;
-                await updateDoc(doc(db, 'games', room_id), { cac_nuoc_di: data.cac_nuoc_di, lich_su_nuoc_di: hist, luot_choi: last.player, nguoi_thang: null, hang_thang: [], so_lan_undo: data.so_lan_undo, undo_request: { requester: last.player, status: 'accepted' } });
+                const snap = await getDoc(doc(db, 'games', room_id)), data = snap.data();
+                let hist = [...data.lich_su_nuoc_di];
+                const requester = data.undo_request.requester;
+                
+                // Tim nuoc di cuoi cung cua nguoi yeu cau trong lich su
+                let foundIndex = -1;
+                for(let i = hist.length - 1; i >= 0; i--) {
+                    if(hist[i].player === requester) {
+                        foundIndex = i;
+                        break;
+                    }
+                }
+
+                if (foundIndex !== -1) {
+                    // Xoa tat ca cac nuoc di tu nuoc do tro di
+                    const removedMoves = hist.splice(foundIndex);
+                    removedMoves.forEach(m => delete data.cac_nuoc_di[m.id]);
+                    
+                    data.so_lan_undo[requester]--;
+                    const last_id = hist.length > 0 ? hist[hist.length-1].id : null;
+
+                    await updateDoc(doc(db, 'games', room_id), { 
+                        cac_nuoc_di: data.cac_nuoc_di, 
+                        lich_su_nuoc_di: hist, 
+                        luot_choi: requester, 
+                        nguoi_thang: null, 
+                        hang_thang: [], 
+                        nuoc_di_cuoi: last_id,
+                        so_lan_undo: data.so_lan_undo, 
+                        undo_request: { requester: requester, status: 'accepted' } 
+                    });
+                }
             }
         }
         
         window.kich_hoat_choi_lai = async (e) => { 
             if(e) e.stopPropagation(); 
-            // Xác định ai đi trước: người thua ván trước đi trước (X)
             const nguoi_di_truoc = nguoi_thua_van_truoc || 'X';
             
             if (room_id) { 
@@ -809,10 +869,10 @@
                     hang_thang: [], 
                     nuoc_di_cuoi: null, 
                     so_lan_undo: {X:3, O:3}, 
-                    cac_goi_y: {X:{}, O:{}} 
+                    cac_goi_y: {X:{}, O:{}},
+                    undo_request: null
                 }); 
             } else {
-                // Chế độ Offline
                 cac_nuoc_di = {}; lich_su_nuoc_di = [];
                 luot_choi = nguoi_di_truoc; 
                 nguoi_thang = null; hang_thang = []; nuoc_di_cuoi = null;
